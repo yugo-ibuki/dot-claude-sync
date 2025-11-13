@@ -1,6 +1,6 @@
 # claude-sync
 
-A CLI tool to synchronize `.claude` directories across multiple projects.
+A CLI tool to synchronize `.claude` directories across multiple independent projects in your workspace.
 Manage files in groups and perform bulk operations like add, overwrite, delete, and move.
 
 ## Installation
@@ -19,28 +19,30 @@ go build -o claude-sync
 
 ## Quick Start
 
-### 1. Create Configuration File
+### 1. Create Global Configuration File
 
-Create `.claude-sync.yaml` at your project root:
+Create a global configuration file at `~/.config/claude-sync/config.yaml`:
 
 ```yaml
 groups:
-  frontend:
+  web-projects:
     paths:
-      web: ./packages/web/.claude
-      mobile: ./packages/mobile/.claude
-      admin: ./packages/admin/.claude
+      main-site: ~/projects/website/.claude
+      api-server: ~/projects/api/.claude
+      admin-dashboard: ~/projects/admin/.claude
     priority:
-      - web      # highest priority
-      - mobile   # second priority
-      # admin has lowest priority
+      - main-site  # highest priority
+      - api-server # second priority
+      # admin-dashboard has lowest priority
 ```
+
+Or create `.claude-sync.yaml` in any parent directory of your workspace.
 
 ### 2. Run Sync
 
 ```bash
-# Sync all projects in the frontend group
-claude-sync push frontend
+# Sync all projects in the web-projects group
+claude-sync push web-projects
 ```
 
 This distributes `.claude` directory contents across all projects based on priority settings.
@@ -56,7 +58,7 @@ claude-sync push <group>
 ```
 
 **How it works:**
-1. Collects files from all projects in the group
+1. Collects files from all projects in the group (across your workspace)
 2. For duplicate filenames, uses the file from the highest priority project
 3. Distributes collected files to all projects in the group
 
@@ -68,8 +70,8 @@ Deletes specified files or directories from all projects in a group.
 claude-sync rm <group> <path>
 
 # Examples
-claude-sync rm frontend prompts/old-prompt.md
-claude-sync rm backend prompts/deprecated/  # Delete entire directory
+claude-sync rm web-projects prompts/old-prompt.md
+claude-sync rm python-services prompts/deprecated/  # Delete entire directory
 ```
 
 ### 📝 mv - Move/Rename Files
@@ -80,8 +82,8 @@ Moves or renames files or directories across all projects in a group.
 claude-sync mv <group> <from> <to>
 
 # Examples
-claude-sync mv frontend prompts/old.md prompts/new.md
-claude-sync mv backend old-dir/ new-dir/
+claude-sync mv web-projects prompts/old.md prompts/new.md
+claude-sync mv python-services old-dir/ new-dir/
 ```
 
 ### 📋 list - List Groups
@@ -93,7 +95,7 @@ Shows list of configured groups or details of a specific group.
 claude-sync list
 
 # Show details of a specific group
-claude-sync list frontend
+claude-sync list web-projects
 ```
 
 ## Configuration File
@@ -112,49 +114,52 @@ claude-sync list frontend
 
 ```yaml
 groups:
-  frontend:
+  web-projects:
     paths:
-      web: ./packages/web/.claude
-      mobile: ./packages/mobile/.claude
-      admin: ./packages/admin/.claude
+      frontend: ~/projects/web-frontend/.claude
+      backend: ~/projects/web-backend/.claude
+      shared: ~/projects/shared-components/.claude
     priority:
-      - web      # highest priority
-      - mobile   # second priority
-      # admin has lowest priority (not specified in priority)
+      - shared    # highest priority - shared config across projects
+      - frontend  # second priority
+      # backend has lowest priority (not specified in priority)
 
-  backend:
+  python-services:
     paths:
-      api: ./services/api/.claude
-      worker: ./services/worker/.claude
+      api: ~/workspace/python-api/.claude
+      worker: ~/workspace/python-worker/.claude
+      batch: ~/workspace/python-batch/.claude
     priority:
-      - api
+      - api  # api project has master configuration
 ```
 
 #### Simple Form (without aliases)
 
 ```yaml
 groups:
-  frontend:
+  go-projects:
     paths:
-      - ./packages/web/.claude
-      - ./packages/mobile/.claude
-      - ./packages/admin/.claude
+      - ~/go/src/github.com/user/project-a/.claude
+      - ~/go/src/github.com/user/project-b/.claude
+      - ~/go/src/github.com/user/project-c/.claude
     priority:
-      - ./packages/web/.claude
-      - ./packages/mobile/.claude
+      - ~/go/src/github.com/user/project-a/.claude
+      - ~/go/src/github.com/user/project-b/.claude
 ```
 
 #### Without Priority (paths order becomes default priority)
 
 ```yaml
 groups:
-  infra:
+  client-projects:
     paths:
-      terraform: ./terraform/.claude
-      k8s: ./k8s/.claude
+      acme-corp: ~/clients/acme-corp/.claude
+      beta-inc: ~/clients/beta-inc/.claude
+      gamma-ltd: ~/clients/gamma-ltd/.claude
     # Without priority specification, paths order becomes priority
-    # 1. terraform (highest)
-    # 2. k8s (second)
+    # 1. acme-corp (highest)
+    # 2. beta-inc (second)
+    # 3. gamma-ltd (lowest)
 ```
 
 ### Priority Rules
@@ -179,57 +184,77 @@ Options available for all commands:
 
 **Examples:**
 ```bash
-claude-sync push frontend --dry-run
-claude-sync rm backend old.md --force
-claude-sync push frontend --config ./custom-config.yaml
+claude-sync push web-projects --dry-run
+claude-sync rm python-services old.md --force
+claude-sync push client-projects --config ~/.config/claude-sync/custom-config.yaml
 ```
 
 ## Use Cases
 
-### Case 1: Distribute New Prompt Across Frontend Projects
+### Case 1: Distribute New Prompt Across Related Projects
 
 ```bash
-# Create new prompt in web project
-cd packages/web/.claude/prompts
+# Create new prompt in your main project
+cd ~/projects/web-frontend/.claude/prompts
 vim new-feature.md
 
-# Distribute to entire frontend group
-claude-sync push frontend
+# Distribute to all projects in the group
+claude-sync push web-projects
 ```
 
 ### Case 2: Delete Old Prompts from All Projects
 
 ```bash
 # Verify before deletion
-claude-sync rm backend prompts/deprecated/ --dry-run
+claude-sync rm python-services prompts/deprecated/ --dry-run
 
 # Execute deletion
-claude-sync rm backend prompts/deprecated/
+claude-sync rm python-services prompts/deprecated/
 ```
 
-### Case 3: Standardize File Names
+### Case 3: Standardize File Names Across Workspace
 
 ```bash
-# Bulk rename across all projects
-claude-sync mv frontend old-name.md new-name.md
+# Bulk rename across all projects in the group
+claude-sync mv web-projects old-name.md new-name.md
 ```
 
 ### Case 4: Distribute Configuration from Master Project
 
 ```yaml
-# Set web as master
-frontend:
+# Set a shared project as master for consistent configuration
+web-projects:
   paths:
-    web: ./packages/web/.claude
-    mobile: ./packages/mobile/.claude
-    admin: ./packages/admin/.claude
+    shared: ~/projects/shared-config/.claude
+    frontend: ~/projects/web-frontend/.claude
+    backend: ~/projects/web-backend/.claude
+    mobile: ~/projects/mobile-app/.claude
   priority:
-    - web  # web settings take priority
+    - shared  # shared configuration takes priority
 ```
 
 ```bash
-# All projects will be unified with web's configuration
-claude-sync push frontend
+# All projects will be unified with shared configuration
+claude-sync push web-projects
+```
+
+### Case 5: Sync Client Project Templates
+
+```bash
+# Set up configuration for multiple client projects
+# ~/.config/claude-sync/config.yaml
+groups:
+  client-templates:
+    paths:
+      template: ~/templates/client-template/.claude
+      client-a: ~/clients/client-a/.claude
+      client-b: ~/clients/client-b/.claude
+      client-c: ~/clients/client-c/.claude
+    priority:
+      - template  # template is the source of truth
+
+# Distribute template to all client projects
+claude-sync push client-templates
 ```
 
 ## Important Notes
