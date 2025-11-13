@@ -19,16 +19,24 @@ go build -o claude-sync
 
 ## Quick Start
 
-### 1. Create Configuration File
+### 1. Initialize Configuration
 
-Create your configuration file at `~/.config/claude-sync/config.yaml`:
+Run the init command to create your configuration file:
+
+```bash
+claude-sync init
+```
+
+This will interactively guide you through creating `~/.config/claude-sync/config.yaml`.
+
+Alternatively, you can create the file manually:
 
 ```bash
 mkdir -p ~/.config/claude-sync
 vim ~/.config/claude-sync/config.yaml
 ```
 
-Add your project groups:
+Example configuration:
 
 ```yaml
 groups:
@@ -52,7 +60,32 @@ claude-sync push web-projects
 
 This distributes `.claude` directory contents across all projects based on priority settings.
 
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `claude-sync init` | Initialize configuration file interactively |
+| `claude-sync push <group>` | Sync files across all projects in a group |
+| `claude-sync rm <group> <path>` | Delete files from all projects in a group |
+| `claude-sync mv <group> <from> <to>` | Move/rename files in all projects |
+| `claude-sync list [group]` | Show groups or group details |
+
 ## Features
+
+### 🎬 init - Initialize Configuration
+
+Creates the configuration file with interactive prompts.
+
+```bash
+# Interactive setup
+claude-sync init
+
+# Overwrite existing config without confirmation
+claude-sync init --force
+
+# Preview what will be created
+claude-sync init --dry-run
+```
 
 ### 📤 push - Synchronize Files
 
@@ -103,22 +136,6 @@ claude-sync list
 claude-sync list web-projects
 ```
 
-### 🗑️ uninstall - Remove Configuration
-
-Removes the configuration directory and all its contents.
-
-```bash
-# Remove configuration (with confirmation)
-claude-sync uninstall
-
-# Remove without confirmation
-claude-sync uninstall --force
-
-# Preview what will be removed
-claude-sync uninstall --dry-run
-```
-
-**Note:** This only removes the configuration directory (`~/.config/claude-sync`). To remove the binary, run `rm $(which claude-sync)`.
 
 ## Configuration File
 
@@ -289,13 +306,21 @@ claude-sync push client-templates
 2. **Understanding Conflicts**: Duplicate filenames are overwritten with content from higher priority projects
 3. **Deletion is Irreversible**: `rm` command cannot be undone; use `--dry-run` for verification first
 4. **Git Management**:
-   - Configuration file (`.claude-sync.yaml`) should be under Git control
+   - Configuration file should be under Git control if shared across team
    - `.claude` directory itself should also be managed by Git as needed
+
+## Uninstall
+
+To completely remove claude-sync:
+
+```bash
+# Remove the binary
+rm $(which claude-sync)
+
+# Remove the configuration directory
+rm -rf ~/.config/claude-sync
+```
 
 ## License
 
 MIT
-
-## Detailed Specification
-
-For detailed operational specifications, see [spec/doc.md](./spec/doc.md).
