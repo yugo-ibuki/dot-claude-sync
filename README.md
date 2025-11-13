@@ -19,9 +19,16 @@ go build -o claude-sync
 
 ## Quick Start
 
-### 1. Create Global Configuration File
+### 1. Create Configuration File
 
-Create a global configuration file at `~/.config/claude-sync/config.yaml`:
+Create your configuration file at `~/.config/claude-sync/config.yaml`:
+
+```bash
+mkdir -p ~/.config/claude-sync
+vim ~/.config/claude-sync/config.yaml
+```
+
+Add your project groups:
 
 ```yaml
 groups:
@@ -35,8 +42,6 @@ groups:
       - api-server # second priority
       # admin-dashboard has lowest priority
 ```
-
-Or create `.claude-sync.yaml` in any parent directory of your workspace.
 
 ### 2. Run Sync
 
@@ -98,15 +103,36 @@ claude-sync list
 claude-sync list web-projects
 ```
 
+### 🗑️ uninstall - Remove Configuration
+
+Removes the configuration directory and all its contents.
+
+```bash
+# Remove configuration (with confirmation)
+claude-sync uninstall
+
+# Remove without confirmation
+claude-sync uninstall --force
+
+# Preview what will be removed
+claude-sync uninstall --dry-run
+```
+
+**Note:** This only removes the configuration directory (`~/.config/claude-sync`). To remove the binary, run `rm $(which claude-sync)`.
+
 ## Configuration File
 
 ### File Location
 
-`.claude-sync.yaml` is searched in the following order:
+Configuration file is located at a **fixed location**:
 
-1. Current directory
-2. Parent directories (traversing upwards)
-3. `~/.config/claude-sync/config.yaml` (global config)
+```
+~/.config/claude-sync/config.yaml
+```
+
+This allows you to run `claude-sync` from any directory and it will always use the same configuration.
+
+You can override this with the `--config` flag to use a different configuration file.
 
 ### Configuration Examples
 
