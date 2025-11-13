@@ -37,7 +37,7 @@ claude-sync/
 │   ├── init.go           ✅ 設定ファイル初期化（完全動作）
 │   ├── list.go           ✅ グループ一覧・詳細表示（完全動作）
 │   ├── push.go           ✅ 完全動作（収集・競合解決・配布）
-│   ├── rm.go             🚧 スケルトンのみ（TODOコメント付き）
+│   ├── rm.go             ✅ 完全実装（ファイル検索、削除、確認プロンプト）
 │   └── mv.go             🚧 スケルトンのみ（TODOコメント付き）
 ├── config/
 │   └── config.go         ✅ YAML設定読み込み、優先度解決
@@ -64,13 +64,13 @@ claude-sync/
 | **initコマンド** | ✅ | 100% | インタラクティブ設定作成、完全動作 |
 | **listコマンド** | ✅ | 100% | グループ一覧・詳細表示、完全動作 |
 | **pushコマンド** | ✅ | 100% | 収集・競合解決・配布、完全動作 |
-| **rmコマンド** | 🚧 | 20% | 引数解析のみ、ロジック未実装 |
+| **rmコマンド** | ✅ | 100% | ファイル検索・削除・確認プロンプト、完全動作 |
 | **mvコマンド** | 🚧 | 20% | 引数解析のみ、ロジック未実装 |
 | **ファイル収集** | ✅ | 100% | syncer/collector.go 完成 |
 | **競合解決** | ✅ | 100% | syncer/resolver.go 完成 |
 | **ファイル配布** | ✅ | 100% | syncer/syncer.go 完成 |
-| **ファイル操作** | ✅ | 100% | utils/file.go 完成 |
-| **確認プロンプト** | ❌ | 0% | utils/prompt.go 未作成 |
+| **ファイル操作** | ✅ | 100% | utils/file.go 完成 (IsDirectory, FormatSize追加) |
+| **確認プロンプト** | ✅ | 100% | cmd/rm.go内で実装済み |
 | **テスト** | ❌ | 0% | 全パッケージでテスト未実装 |
 
 #### 動作確認済みコマンド
@@ -81,24 +81,22 @@ claude-sync init              # 設定ファイル初期化
 claude-sync list              # グループ一覧表示
 claude-sync list <group>      # グループ詳細表示
 claude-sync push <group>      # ファイル同期（収集・競合解決・配布）
+claude-sync rm <group> <path> # ファイル/ディレクトリ削除（完全実装）
 claude-sync --help            # ヘルプ表示
 claude-sync --version         # バージョン表示
 
 # 🚧 スケルトンのみ（引数解析は動作）
-claude-sync rm <group> <path> # 実行はできるが何もしない
 claude-sync mv <group> <from> <to>  # 実行はできるが何もしない
 ```
 
 ### 🎯 次のマイルストーン
 
-**目標**: `claude-sync rm`および`claude-sync mv`コマンドを実装する
+**目標**: `claude-sync mv`コマンドを実装する
 
 **必要な実装**:
-1. utils/prompt.go (確認プロンプト)
-2. cmd/rm.go (削除ロジック実装)
-3. cmd/mv.go (移動ロジック実装)
+1. cmd/mv.go (移動ロジック実装)
 
-**推定工数**: 4-6時間
+**推定工数**: 2-3時間
 
 ---
 
@@ -195,18 +193,12 @@ func FileExists(path string) bool
 func FileHash(path string) (string, error)
 ```
 
-#### 2.2 確認プロンプト (utils/prompt.go)
-- [ ] Yes/No確認プロンプト
-- [ ] 削除確認プロンプト（ファイルリスト表示）
-- [ ] 上書き確認プロンプト
-- [ ] forceフラグ対応
+#### 2.2 確認プロンプト
+- [x] Yes/No確認プロンプト
+- [x] 削除確認プロンプト（ファイルリスト表示）
+- [x] forceフラグ対応
 
-**主要関数:**
-```go
-func Confirm(message string, force bool) (bool, error)
-func ConfirmDeletion(files []string, force bool) (bool, error)
-func ConfirmOverwrite(files []string, force bool) (bool, error)
-```
+**注**: rmコマンド内で直接実装済み（utils/prompt.go は不要）
 
 ---
 
@@ -252,20 +244,20 @@ Summary: 15 unique files synced across 3 projects
 ```
 
 #### 3.2 rm コマンド (cmd/rm.go)
-**現在の状態**: スケルトンのみ
+**現在の状態**: ✅ 完全実装
 
 **実装タスク**:
-- [ ] ファイル検索ロジック
-  - [ ] 各プロジェクトで指定パスを検索
-  - [ ] 存在するファイルをリスト化
-- [ ] 削除確認プロンプト
-  - [ ] 削除対象ファイルのリスト表示
-  - [ ] forceフラグ対応
-- [ ] 削除実行
-  - [ ] ファイル/ディレクトリ削除
-  - [ ] 各プロジェクトでの削除結果表示
-  - [ ] エラーハンドリング
-- [ ] サマリー表示
+- [x] ファイル検索ロジック
+  - [x] 各プロジェクトで指定パスを検索
+  - [x] 存在するファイルをリスト化
+- [x] 削除確認プロンプト
+  - [x] 削除対象ファイルのリスト表示
+  - [x] forceフラグ対応
+- [x] 削除実行
+  - [x] ファイル/ディレクトリ削除
+  - [x] 各プロジェクトでの削除結果表示
+  - [x] エラーハンドリング
+- [x] サマリー表示
 
 **期待される出力例**:
 ```
@@ -402,10 +394,10 @@ Summary: 2 files moved
 4. ✅ syncer/syncer.go - ファイル配布
 5. ✅ push コマンドの完成
 
-### Phase 2: Additional Commands
-6. utils/prompt.go - 確認プロンプト
-7. rm コマンドの完成
-8. mv コマンドの完成
+### Phase 2: Additional Commands ✅ 50% 完了
+6. ✅ 確認プロンプト（rmコマンド内で実装済み）
+7. ✅ rm コマンドの完成
+8. mv コマンドの実装
 
 ### Phase 3: Quality & Testing
 9. エラーハンドリングの強化
@@ -417,10 +409,10 @@ Summary: 2 files moved
 
 ## 進捗トラッキング
 
-### 全体進捗: 60%
+### 全体進捗: 75%
 
 ```
-██████████████████░░░░░░░░░░ 60%
+██████████████████████░░░░░░ 75%
 ```
 
 ### フェーズ別進捗
@@ -428,7 +420,7 @@ Summary: 2 files moved
 | フェーズ | 進捗 | 状態 | 完了タスク | 残りタスク |
 |---------|------|------|-----------|-----------|
 | **Phase 1: Core Functionality** | 100% | ✅ 完了 | 5/5 | なし |
-| **Phase 2: Additional Commands** | 0% | 🚧 進行中 | 0/3 | utils/prompt.go, rm実装, mv実装 |
+| **Phase 2: Additional Commands** | 67% | 🚧 進行中 | 2/3 | mv実装のみ |
 | **Phase 3: Quality & Testing** | 0% | ⏸️ 未着手 | 0/4 | エラーハンドリング, ユニットテスト, 統合テスト, ドキュメント |
 
 ### パッケージ別進捗
@@ -436,10 +428,10 @@ Summary: 2 files moved
 | パッケージ | ファイル数 | 完成 | 進捗 |
 |-----------|-----------|------|------|
 | main | 1/1 | ✅ | 100% |
-| cmd | 4/6 | 🚧 | 67% |
+| cmd | 5/6 | 🚧 | 83% |
 | config | 1/1 | ✅ | 100% |
 | syncer | 3/3 | ✅ | 100% |
-| utils | 1/2 | 🚧 | 50% |
+| utils | 1/1 | ✅ | 100% |
 
 ### 重要マイルストーン
 
@@ -448,7 +440,8 @@ Summary: 2 files moved
 - [x] initコマンド実装 (2025-11-14)
 - [x] listコマンド実装 (2025-11-14)
 - [x] pushコマンド実装 (2025-11-14)
-- [ ] rm/mvコマンド実装（次のマイルストーン）
+- [x] rmコマンド実装 (2025-11-14)
+- [ ] mvコマンド実装（次のマイルストーン）
 - [ ] v0.1.0リリース
 - [ ] テスト完備
 - [ ] v1.0.0リリース
@@ -466,14 +459,18 @@ Summary: 2 files moved
 - ✅ syncer/resolver.go実装（競合解決ロジック）
 - ✅ syncer/syncer.go実装（ファイル配布ロジック）
 - ✅ `claude-sync push`コマンド完成（Phase 1完了）
+- ✅ utils/file.go拡張（IsDirectory, FormatSize追加、RemoveFile改良）
+- ✅ `claude-sync rm`コマンド完全実装（ファイル検索、削除、確認プロンプト、エラーハンドリング）
+- ✅ mainブランチのfile.goとrmコマンド実装をマージ
+- ✅ 一時ファイル（_file.go）削除
 
 ### 次の作業予定
 
-1. **utils/prompt.go** - 確認プロンプト実装
-2. **cmd/rm.go** - rmコマンド完成
-3. **cmd/mv.go** - mvコマンド完成
+1. **cmd/mv.go** - mvコマンド完成
+2. **テスト** - ユニットテスト・統合テストの追加
+3. **ドキュメント** - READMEの充実
 
-**推定完了時期**: Phase 2完了まで 0.5-1日
+**推定完了時期**: Phase 2完了まで 0.5日
 
 ---
 

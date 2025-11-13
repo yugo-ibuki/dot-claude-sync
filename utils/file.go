@@ -92,7 +92,7 @@ func CopyDir(src, dst string) error {
 	return nil
 }
 
-// RemoveFile removes a file
+// RemoveFile removes a file or directory (recursively if directory)
 func RemoveFile(path string) error {
 	path = expandPath(path)
 
@@ -100,8 +100,9 @@ func RemoveFile(path string) error {
 		return nil // Already doesn't exist
 	}
 
-	if err := os.Remove(path); err != nil {
-		return fmt.Errorf("failed to remove file: %w", err)
+	// Use RemoveAll to handle both files and directories
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("failed to remove: %w", err)
 	}
 
 	return nil
@@ -174,6 +175,30 @@ func FileHash(path string) (string, error) {
 	}
 
 	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// IsDirectory checks if the given path is a directory
+func IsDirectory(path string) bool {
+	path = expandPath(path)
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
+}
+
+// FormatSize formats file size in human-readable format
+func FormatSize(size int64) string {
+	const unit = 1024
+	if size < unit {
+		return fmt.Sprintf("%d B", size)
+	}
+	div, exp := int64(unit), 0
+	for n := size / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
 
 // expandPath expands ~ to home directory
