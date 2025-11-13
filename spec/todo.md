@@ -1,0 +1,480 @@
+# claude-sync 実装TODO
+
+## 📑 目次
+
+1. [実装状況サマリー](#実装状況サマリー)
+2. [現在の状況](#現在の状況)
+3. [未実装機能](#未実装機能)
+   - [1. Core Sync Logic (syncer/)](#1-core-sync-logic-syncer)
+   - [2. Utility Functions (utils/)](#2-utility-functions-utils)
+   - [3. Commands Implementation](#3-commands-implementation)
+   - [4. Error Handling & Edge Cases](#4-error-handling--edge-cases)
+   - [5. Testing](#5-testing)
+   - [6. Documentation](#6-documentation)
+   - [7. Future Enhancements](#7-future-enhancements-優先度低)
+4. [実装優先順位](#実装優先順位)
+5. [進捗トラッキング](#進捗トラッキング)
+
+---
+
+## 実装状況サマリー
+
+- ✅ **実装済み**: 基本構造、設定管理、init/list/pushコマンド (60%)
+- 🚧 **未実装**: rm/mvコマンド、テスト、ドキュメント (40%)
+
+---
+
+## 現在の状況
+
+### ✅ 実装完了
+
+#### プロジェクト構造
+```
+claude-sync/
+├── main.go                ✅ エントリーポイント
+├── cmd/
+│   ├── root.go           ✅ ルートコマンド、グローバルフラグ
+│   ├── init.go           ✅ 設定ファイル初期化（完全動作）
+│   ├── list.go           ✅ グループ一覧・詳細表示（完全動作）
+│   ├── push.go           ✅ 完全動作（収集・競合解決・配布）
+│   ├── rm.go             🚧 スケルトンのみ（TODOコメント付き）
+│   └── mv.go             🚧 スケルトンのみ（TODOコメント付き）
+├── config/
+│   └── config.go         ✅ YAML設定読み込み、優先度解決
+├── syncer/
+│   ├── collector.go      ✅ ファイル収集ロジック
+│   ├── resolver.go       ✅ 競合解決ロジック
+│   └── syncer.go         ✅ ファイル配布ロジック
+├── utils/
+│   └── file.go           ✅ ファイル操作（コピー、削除、移動）
+├── spec/
+│   ├── doc.md            ✅ 仕様書
+│   └── todo.md           ✅ このファイル
+├── README.md             ✅ ユーザードキュメント
+├── .gitignore            ✅ Git除外設定
+└── go.mod                ✅ 依存関係管理
+```
+
+#### 機能別実装状況
+
+| 機能 | 状態 | 進捗 | 備考 |
+|------|------|------|------|
+| **設定管理** | ✅ | 100% | YAML読み込み、優先度解決完了 |
+| **グローバルフラグ** | ✅ | 100% | --config, --dry-run, --verbose, --force |
+| **initコマンド** | ✅ | 100% | インタラクティブ設定作成、完全動作 |
+| **listコマンド** | ✅ | 100% | グループ一覧・詳細表示、完全動作 |
+| **pushコマンド** | ✅ | 100% | 収集・競合解決・配布、完全動作 |
+| **rmコマンド** | 🚧 | 20% | 引数解析のみ、ロジック未実装 |
+| **mvコマンド** | 🚧 | 20% | 引数解析のみ、ロジック未実装 |
+| **ファイル収集** | ✅ | 100% | syncer/collector.go 完成 |
+| **競合解決** | ✅ | 100% | syncer/resolver.go 完成 |
+| **ファイル配布** | ✅ | 100% | syncer/syncer.go 完成 |
+| **ファイル操作** | ✅ | 100% | utils/file.go 完成 |
+| **確認プロンプト** | ❌ | 0% | utils/prompt.go 未作成 |
+| **テスト** | ❌ | 0% | 全パッケージでテスト未実装 |
+
+#### 動作確認済みコマンド
+
+```bash
+# ✅ 完全動作
+claude-sync init              # 設定ファイル初期化
+claude-sync list              # グループ一覧表示
+claude-sync list <group>      # グループ詳細表示
+claude-sync push <group>      # ファイル同期（収集・競合解決・配布）
+claude-sync --help            # ヘルプ表示
+claude-sync --version         # バージョン表示
+
+# 🚧 スケルトンのみ（引数解析は動作）
+claude-sync rm <group> <path> # 実行はできるが何もしない
+claude-sync mv <group> <from> <to>  # 実行はできるが何もしない
+```
+
+### 🎯 次のマイルストーン
+
+**目標**: `claude-sync rm`および`claude-sync mv`コマンドを実装する
+
+**必要な実装**:
+1. utils/prompt.go (確認プロンプト)
+2. cmd/rm.go (削除ロジック実装)
+3. cmd/mv.go (移動ロジック実装)
+
+**推定工数**: 4-6時間
+
+---
+
+## 未実装機能
+
+### 1. Core Sync Logic (syncer/)
+
+#### 1.1 ファイル収集 (syncer/collector.go)
+- [x] `Collector` 構造体の定義
+- [x] `.claude`ディレクトリ配下のファイルリストアップ
+- [x] 相対パスの正規化（`.claude/`からの相対パス）
+- [x] ファイル情報の収集（パス、サイズ、ハッシュ）
+- [x] エラーハンドリング（存在しないディレクトリ、読み込み権限）
+
+**主要メソッド:**
+```go
+type FileInfo struct {
+    RelPath string  // .claudeからの相対パス
+    AbsPath string  // 絶対パス
+    Project string  // プロジェクトエイリアス
+    Priority int    // 優先度
+}
+
+func CollectFiles(projects []ProjectPath) ([]FileInfo, error)
+```
+
+#### 1.2 競合解決 (syncer/resolver.go)
+- [x] `Resolver` 構造体の定義
+- [x] 同名ファイルのグルーピング
+- [x] 優先度による競合解決
+- [x] 解決結果のレポート生成
+
+**主要メソッド:**
+```go
+type ResolvedFile struct {
+    RelPath  string
+    Source   string  // 採用されたプロジェクト
+    Priority int
+}
+
+type Conflict struct {
+    RelPath    string
+    Candidates []FileInfo
+    Resolved   FileInfo
+}
+
+func ResolveConflicts(files []FileInfo) ([]ResolvedFile, []Conflict, error)
+```
+
+#### 1.3 ファイル配布 (syncer/syncer.go)
+- [x] `Syncer` 構造体の定義
+- [x] ファイルコピーロジック
+- [x] ディレクトリ作成
+- [x] 既存ファイルの上書き
+- [x] dry-runモード対応
+- [x] 進捗表示
+
+**主要メソッド:**
+```go
+type SyncResult struct {
+    Project      string
+    NewFiles     int
+    Overwritten  int
+    Failed       int
+    Errors       []error
+}
+
+func SyncFiles(resolved []ResolvedFile, projects []ProjectPath, dryRun bool) ([]SyncResult, error)
+```
+
+---
+
+### 2. Utility Functions (utils/)
+
+#### 2.1 ファイル操作 (utils/file.go)
+- [x] ファイルコピー
+- [x] ディレクトリ再帰的コピー
+- [x] ファイル削除
+- [x] ディレクトリ再帰的削除
+- [x] ファイル移動/リネーム
+- [x] ファイル存在チェック
+- [x] ディレクトリ作成（親ディレクトリ含む）
+- [x] ファイルハッシュ計算（競合検出用）
+
+**主要関数:**
+```go
+func CopyFile(src, dst string) error
+func CopyDir(src, dst string) error
+func RemoveFile(path string) error
+func RemoveDir(path string) error
+func MoveFile(src, dst string) error
+func EnsureDir(path string) error
+func FileExists(path string) bool
+func FileHash(path string) (string, error)
+```
+
+#### 2.2 確認プロンプト (utils/prompt.go)
+- [ ] Yes/No確認プロンプト
+- [ ] 削除確認プロンプト（ファイルリスト表示）
+- [ ] 上書き確認プロンプト
+- [ ] forceフラグ対応
+
+**主要関数:**
+```go
+func Confirm(message string, force bool) (bool, error)
+func ConfirmDeletion(files []string, force bool) (bool, error)
+func ConfirmOverwrite(files []string, force bool) (bool, error)
+```
+
+---
+
+### 3. Commands Implementation
+
+#### 3.1 push コマンド (cmd/push.go)
+**現在の状態**: ✅ 完全動作
+
+**実装タスク**:
+- [x] ファイル収集フェーズの実装
+  - [x] グループ内の全プロジェクトから収集
+  - [x] 収集結果の表示
+- [x] 競合解決フェーズの実装
+  - [x] 同名ファイルの検出
+  - [x] 優先度による解決
+  - [x] 競合レポート表示
+- [x] 配布フェーズの実装
+  - [x] 全プロジェクトへの配布
+  - [x] 進捗表示
+  - [x] エラーハンドリング
+- [x] サマリー表示
+  - [x] 総ファイル数
+  - [x] 各プロジェクトの新規/上書きファイル数
+  - [x] エラーサマリー
+
+**期待される出力例**:
+```
+Collecting files...
+✓ web: 10 files (priority: 1)
+✓ mobile: 8 files (priority: 2)
+✓ admin: 5 files (priority: 3)
+
+Resolving conflicts...
+- config.json: using web (priority: 1)
+- prompts/coding.md: using web (priority: 1)
+
+Syncing...
+✓ Synced to web (3 new files)
+✓ Synced to mobile (5 new files, 2 overwritten)
+✓ Synced to admin (8 new files, 1 overwritten)
+
+Summary: 15 unique files synced across 3 projects
+```
+
+#### 3.2 rm コマンド (cmd/rm.go)
+**現在の状態**: スケルトンのみ
+
+**実装タスク**:
+- [ ] ファイル検索ロジック
+  - [ ] 各プロジェクトで指定パスを検索
+  - [ ] 存在するファイルをリスト化
+- [ ] 削除確認プロンプト
+  - [ ] 削除対象ファイルのリスト表示
+  - [ ] forceフラグ対応
+- [ ] 削除実行
+  - [ ] ファイル/ディレクトリ削除
+  - [ ] 各プロジェクトでの削除結果表示
+  - [ ] エラーハンドリング
+- [ ] サマリー表示
+
+**期待される出力例**:
+```
+This will delete from 'frontend' group:
+- ./packages/web/.claude/prompts/old-prompt.md
+- ./packages/mobile/.claude/prompts/old-prompt.md
+
+Continue? [y/N]: y
+
+✓ Deleted from web
+✓ Deleted from mobile
+✗ Not found in admin (skipped)
+
+Summary: 2 files deleted
+```
+
+#### 3.3 mv コマンド (cmd/mv.go)
+**現在の状態**: スケルトンのみ
+
+**実装タスク**:
+- [ ] ファイル検索ロジック
+  - [ ] 各プロジェクトで移動元パスを検索
+- [ ] 移動確認プロンプト
+  - [ ] 移動対象のリスト表示
+  - [ ] 移動先の衝突チェック
+  - [ ] forceフラグ対応
+- [ ] 移動実行
+  - [ ] ファイル/ディレクトリ移動
+  - [ ] 移動先ディレクトリの作成
+  - [ ] 各プロジェクトでの移動結果表示
+  - [ ] エラーハンドリング
+- [ ] サマリー表示
+
+**期待される出力例**:
+```
+This will rename in 'frontend' group:
+prompts/old.md → prompts/new.md
+
+Continue? [y/N]: y
+
+✓ Moved in web
+✓ Moved in mobile
+✗ Source not found in admin (skipped)
+
+Summary: 2 files moved
+```
+
+---
+
+### 4. Error Handling & Edge Cases
+
+#### 4.1 エラーハンドリング
+- [ ] 設定ファイルの検証
+  - [ ] パスの存在チェック
+  - [ ] パスの読み込み権限チェック
+- [ ] 一部プロジェクトでの失敗時の継続処理
+- [ ] 詳細なエラーメッセージ
+- [ ] dry-runモードでのシミュレーション
+
+#### 4.2 エッジケース
+- [ ] 空ディレクトリの処理
+- [ ] シンボリックリンクの処理
+- [ ] 隠しファイルの処理
+- [ ] 大容量ファイルの処理
+- [ ] パス長制限
+- [ ] ファイル名の特殊文字
+
+---
+
+### 5. Testing
+
+#### 5.1 ユニットテスト
+- [ ] config パッケージ
+  - [ ] YAML読み込み
+  - [ ] 優先度解決ロジック
+- [ ] syncer パッケージ
+  - [ ] ファイル収集
+  - [ ] 競合解決
+  - [ ] ファイル配布
+- [ ] utils パッケージ
+  - [ ] ファイル操作
+  - [ ] プロンプト
+
+#### 5.2 統合テスト
+- [ ] push コマンドのエンドツーエンドテスト
+- [ ] rm コマンドのエンドツーエンドテスト
+- [ ] mv コマンドのエンドツーエンドテスト
+- [ ] 複数グループの処理
+- [ ] エラーシナリオ
+
+#### 5.3 テストデータ
+- [ ] サンプルプロジェクト構造の作成
+- [ ] テスト用の設定ファイル
+- [ ] 期待される出力の定義
+
+---
+
+### 6. Documentation
+
+#### 6.1 コードドキュメント
+- [ ] パッケージレベルのドキュメント
+- [ ] 公開関数のGoDoc
+- [ ] 複雑なロジックのコメント
+
+#### 6.2 ユーザードキュメント
+- [✅] README.md (基本完成)
+- [ ] 詳細な使用例
+- [ ] トラブルシューティングガイド
+- [ ] FAQセクション
+
+---
+
+### 7. Future Enhancements (優先度低)
+
+- [ ] 除外パターン設定（.gitignoreのような）
+- [ ] バックアップ機能
+- [ ] 変更履歴の記録
+- [ ] ロールバック機能
+- [ ] プレビューモードの改善
+- [ ] カラー出力対応
+- [ ] 進捗バーの表示
+- [ ] 並列処理による高速化
+- [ ] ファイル内容の差分表示
+- [ ] WebUIの提供
+
+---
+
+## 実装優先順位
+
+### Phase 1: Core Functionality (最優先) ✅ 完了
+1. ✅ utils/file.go - 基本的なファイル操作
+2. ✅ syncer/collector.go - ファイル収集
+3. ✅ syncer/resolver.go - 競合解決
+4. ✅ syncer/syncer.go - ファイル配布
+5. ✅ push コマンドの完成
+
+### Phase 2: Additional Commands
+6. utils/prompt.go - 確認プロンプト
+7. rm コマンドの完成
+8. mv コマンドの完成
+
+### Phase 3: Quality & Testing
+9. エラーハンドリングの強化
+10. ユニットテスト
+11. 統合テスト
+12. ドキュメント整備
+
+---
+
+## 進捗トラッキング
+
+### 全体進捗: 60%
+
+```
+██████████████████░░░░░░░░░░ 60%
+```
+
+### フェーズ別進捗
+
+| フェーズ | 進捗 | 状態 | 完了タスク | 残りタスク |
+|---------|------|------|-----------|-----------|
+| **Phase 1: Core Functionality** | 100% | ✅ 完了 | 5/5 | なし |
+| **Phase 2: Additional Commands** | 0% | 🚧 進行中 | 0/3 | utils/prompt.go, rm実装, mv実装 |
+| **Phase 3: Quality & Testing** | 0% | ⏸️ 未着手 | 0/4 | エラーハンドリング, ユニットテスト, 統合テスト, ドキュメント |
+
+### パッケージ別進捗
+
+| パッケージ | ファイル数 | 完成 | 進捗 |
+|-----------|-----------|------|------|
+| main | 1/1 | ✅ | 100% |
+| cmd | 4/6 | 🚧 | 67% |
+| config | 1/1 | ✅ | 100% |
+| syncer | 3/3 | ✅ | 100% |
+| utils | 1/2 | 🚧 | 50% |
+
+### 重要マイルストーン
+
+- [x] プロジェクト構造作成 (2025-11-14)
+- [x] 設定ファイル管理実装 (2025-11-14)
+- [x] initコマンド実装 (2025-11-14)
+- [x] listコマンド実装 (2025-11-14)
+- [x] pushコマンド実装 (2025-11-14)
+- [ ] rm/mvコマンド実装（次のマイルストーン）
+- [ ] v0.1.0リリース
+- [ ] テスト完備
+- [ ] v1.0.0リリース
+
+### 最新の変更履歴
+
+**2025-11-14**
+- ✅ 設定ファイルの場所を`~/.config/claude-sync/config.yaml`に固定
+- ✅ `claude-sync init`コマンド追加（インタラクティブ設定作成）
+- ✅ `claude-sync list`コマンド完成（グループ一覧・詳細表示）
+- ✅ README.md更新（使い方、アンインストール方法追加）
+- ✅ spec/todo.md作成（実装TODOリスト）
+- ✅ utils/file.go実装（ファイルコピー、削除、移動、ハッシュ計算）
+- ✅ syncer/collector.go実装（ファイル収集ロジック）
+- ✅ syncer/resolver.go実装（競合解決ロジック）
+- ✅ syncer/syncer.go実装（ファイル配布ロジック）
+- ✅ `claude-sync push`コマンド完成（Phase 1完了）
+
+### 次の作業予定
+
+1. **utils/prompt.go** - 確認プロンプト実装
+2. **cmd/rm.go** - rmコマンド完成
+3. **cmd/mv.go** - mvコマンド完成
+
+**推定完了時期**: Phase 2完了まで 0.5-1日
+
+---
+
+**最終更新日**: 2025-11-14
