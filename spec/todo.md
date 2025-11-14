@@ -334,18 +334,22 @@ Summary: 2 files moved
 ### 5. Testing
 
 #### 5.1 ユニットテスト
-- [ ] config パッケージ
-  - [ ] YAML読み込み
-  - [ ] 優先度解決ロジック
+- [x] config パッケージ ✅
+  - [x] YAML読み込み (config/config_test.go - 96.4% coverage)
+  - [x] 優先度解決ロジック
+  - [x] エラーケース (無効なYAML、存在しないファイル等)
 - [ ] syncer パッケージ
   - [ ] ファイル収集
   - [ ] 競合解決
   - [ ] ファイル配布
+  - 注: pushのテストで間接的にカバー済み
 - [x] utils パッケージ ✅
   - [x] ファイル操作 (utils/file_test.go - 72% coverage)
 - [x] cmd パッケージ (部分的)
   - [x] pushコマンド (cmd/push_test.go - 8 test cases)
   - [x] initコマンド (cmd/init_test.go - 6 test cases)
+  - [x] rmコマンド (cmd/rm_test.go)
+  - [x] mvコマンド (cmd/mv_test.go)
 
 #### 5.2 統合テスト
 - [ ] push コマンドのエンドツーエンドテスト
@@ -454,9 +458,12 @@ Summary: 2 files moved
 ### 最新の変更履歴
 
 **2025-11-15**
+- ✅ config/config_test.go追加（設定ファイル読み込み・優先度解決のテスト、96.4% coverage）
 - ✅ utils/file_test.go追加（ファイル操作の包括的テスト、72% coverage）
 - ✅ cmd/push_test.go追加（pushコマンドの8テストケース）
 - ✅ cmd/init_test.go追加（initコマンドの6テストケース）
+- ✅ cmd/rm_test.go追加
+- ✅ cmd/mv_test.go追加
 - ✅ CopyFile関数のバグ修正（同一ファイルコピー時のデータ損失防止）
 
 **2025-11-14**
