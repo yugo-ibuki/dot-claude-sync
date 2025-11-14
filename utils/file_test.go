@@ -415,8 +415,8 @@ func TestFileHash(t *testing.T) {
 
 		// Verify different content produces different hash
 		testFile2 := filepath.Join(tmpDir, "hash_test2.txt")
-		if writeErr := os.WriteFile(testFile2, []byte("different content"), 0644); writeErr != nil {
-			t.Fatalf("Failed to create second test file: %v", writeErr)
+		if err := os.WriteFile(testFile2, []byte("different content"), 0644); err != nil {
+			t.Fatalf("Failed to create second test file: %v", err)
 		}
 
 		hash3, err := FileHash(testFile2)

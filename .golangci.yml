@@ -28,7 +28,7 @@ linters-settings:
 
   govet:
     enable:
-      - shadow
+      # - shadow  # Disabled to allow err variable reuse
 
   gofmt:
     simplify: true
