@@ -341,9 +341,11 @@ Summary: 2 files moved
   - [ ] ファイル収集
   - [ ] 競合解決
   - [ ] ファイル配布
-- [ ] utils パッケージ
-  - [ ] ファイル操作
-  - [ ] プロンプト
+- [x] utils パッケージ ✅
+  - [x] ファイル操作 (utils/file_test.go - 72% coverage)
+- [x] cmd パッケージ (部分的)
+  - [x] pushコマンド (cmd/push_test.go - 8 test cases)
+  - [x] initコマンド (cmd/init_test.go - 6 test cases)
 
 #### 5.2 統合テスト
 - [ ] push コマンドのエンドツーエンドテスト
@@ -450,6 +452,12 @@ Summary: 2 files moved
 - [ ] v1.0.0リリース
 
 ### 最新の変更履歴
+
+**2025-11-15**
+- ✅ utils/file_test.go追加（ファイル操作の包括的テスト、72% coverage）
+- ✅ cmd/push_test.go追加（pushコマンドの8テストケース）
+- ✅ cmd/init_test.go追加（initコマンドの6テストケース）
+- ✅ CopyFile関数のバグ修正（同一ファイルコピー時のデータ損失防止）
 
 **2025-11-14**
 - ✅ 設定ファイルの場所を`~/.config/claude-sync/config.yaml`に固定
