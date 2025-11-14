@@ -1,0 +1,59 @@
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - unconvert
+    - unparam
+    - gocritic
+    - gosec
+    - revive
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+
+  govet:
+    enable:
+      # - shadow  # Disabled to allow err variable reuse
+
+  gofmt:
+    simplify: true
+
+  goimports:
+    local-prefixes: github.com/yugo-ibuki/dot-claude-sync
+
+  revive:
+    confidence: 0.8
+    rules:
+      - name: unused-parameter
+        disabled: true
+
+  gosec:
+    excludes:
+      - G204 # Subprocess launched with variable
+      - G304 # File path provided as taint input
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+        - gocritic
+
+  max-issues-per-linter: 0
+  max-same-issues: 0

@@ -36,7 +36,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Configuration file already exists: %s\n", configPath)
 		fmt.Print("Overwrite? [y/N]: ")
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			fmt.Println("Cancelled")
+			return nil
+		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Cancelled")
 			return nil
@@ -129,8 +132,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 			fmt.Print("Set priority order? [y/N]: ")
 			var setPriority string
-			fmt.Scanln(&setPriority)
-			if setPriority == "y" || setPriority == "Y" {
+			if _, err := fmt.Scanln(&setPriority); err == nil && (setPriority == "y" || setPriority == "Y") {
 				priority := make([]string, 0)
 				for alias := range paths {
 					priority = append(priority, alias)
@@ -156,7 +158,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

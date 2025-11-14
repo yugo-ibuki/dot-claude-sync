@@ -451,12 +451,12 @@ func TestFormatSize(t *testing.T) {
 		},
 		{
 			name:     "kilobytes",
-			size:     1536,      // 1.5 KB
+			size:     1536, // 1.5 KB
 			expected: "1.5 KB",
 		},
 		{
 			name:     "megabytes",
-			size:     1572864,   // 1.5 MB
+			size:     1572864, // 1.5 MB
 			expected: "1.5 MB",
 		},
 		{

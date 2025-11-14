@@ -11,13 +11,13 @@ import (
 
 // SyncResult represents the result of syncing to a single project
 type SyncResult struct {
-	Project     string   // Project alias
-	NewFiles    int      // Number of new files added
-	Overwritten int      // Number of existing files overwritten
-	Failed      int      // Number of failed operations
-	Errors      []error  // List of errors encountered
-	Skipped     bool     // Whether the project was skipped
-	SkipReason  string   // Reason for skipping
+	Project     string  // Project alias
+	NewFiles    int     // Number of new files added
+	Overwritten int     // Number of existing files overwritten
+	Failed      int     // Number of failed operations
+	Errors      []error // List of errors encountered
+	Skipped     bool    // Whether the project was skipped
+	SkipReason  string  // Reason for skipping
 }
 
 // SyncFiles distributes resolved files to all projects
@@ -125,7 +125,7 @@ func GetSyncSummary(results []SyncResult) string {
 		}
 	}
 
-	summary := fmt.Sprintf("\nSummary:\n")
+	summary := "\nSummary:\n"
 	summary += fmt.Sprintf("  Projects: %d successful", successfulProjects)
 	if skippedProjects > 0 {
 		summary += fmt.Sprintf(", %d skipped", skippedProjects)

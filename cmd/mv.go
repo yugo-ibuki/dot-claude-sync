@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+
 	"github.com/yugo-ibuki/dot-claude-sync/config"
 	"github.com/yugo-ibuki/dot-claude-sync/utils"
 )
@@ -102,7 +103,10 @@ func runMv(cmd *cobra.Command, args []string) error {
 	if !force && !dryRun {
 		fmt.Print("\nContinue? [y/N]: ")
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			fmt.Println("Cancelled")
+			return nil
+		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Cancelled")
 			return nil
@@ -125,15 +129,16 @@ func runMv(cmd *cobra.Command, args []string) error {
 	failedCount := 0
 
 	for _, result := range results {
-		if result.Skipped {
+		switch {
+		case result.Skipped:
 			skippedCount++
 			if verbose {
 				fmt.Printf("✗ %s: %s\n", result.Project, result.SkipReason)
 			}
-		} else if result.Error != nil {
+		case result.Error != nil:
 			failedCount++
 			fmt.Fprintf(os.Stderr, "✗ %s: %v\n", result.Project, result.Error)
-		} else if result.Moved {
+		case result.Moved:
 			movedCount++
 			fmt.Printf("✓ %s: moved\n", result.Project)
 		}
