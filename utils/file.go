@@ -38,8 +38,8 @@ func CopyFile(src, dst string) error {
 
 	// Ensure destination directory exists
 	dstDir := filepath.Dir(dst)
-	if ensureErr := EnsureDir(dstDir); ensureErr != nil {
-		return ensureErr
+	if err := EnsureDir(dstDir); err != nil {
+		return err
 	}
 
 	destFile, err := os.Create(dst)
@@ -48,8 +48,8 @@ func CopyFile(src, dst string) error {
 	}
 	defer destFile.Close()
 
-	if _, copyErr := io.Copy(destFile, sourceFile); copyErr != nil {
-		return fmt.Errorf("failed to copy file: %w", copyErr)
+	if _, err := io.Copy(destFile, sourceFile); err != nil {
+		return fmt.Errorf("failed to copy file: %w", err)
 	}
 
 	// Preserve file permissions
@@ -80,8 +80,8 @@ func CopyDir(src, dst string) error {
 	}
 
 	// Create destination directory
-	if mkdirErr := os.MkdirAll(dst, srcInfo.Mode()); mkdirErr != nil {
-		return fmt.Errorf("failed to create destination directory: %w", mkdirErr)
+	if err := os.MkdirAll(dst, srcInfo.Mode()); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
 	entries, err := os.ReadDir(src)
