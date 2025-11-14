@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+
 	"github.com/yugo-ibuki/dot-claude-sync/config"
 	"github.com/yugo-ibuki/dot-claude-sync/utils"
 )
@@ -92,7 +93,10 @@ func runRm(cmd *cobra.Command, args []string) error {
 	if !force && !dryRun {
 		fmt.Print("\nContinue? [y/N]: ")
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			fmt.Println("Cancelled")
+			return nil
+		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Cancelled")
 			return nil

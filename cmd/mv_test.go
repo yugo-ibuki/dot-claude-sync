@@ -264,15 +264,15 @@ func TestMoveInProject(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		fromPath     string
-		toPath       string
-		setupFiles   func()
-		dryRun       bool
-		expectMoved  bool
-		expectSkip   bool
-		skipReason   string
-		expectError  bool
+		name        string
+		fromPath    string
+		toPath      string
+		setupFiles  func()
+		dryRun      bool
+		expectMoved bool
+		expectSkip  bool
+		skipReason  string
+		expectError bool
 	}{
 		{
 			name:        "move existing file",
@@ -398,11 +398,11 @@ func TestMvCommandFlags(t *testing.T) {
 	}
 
 	tests := []struct {
-		name          string
-		force         bool
-		dryRun        bool
-		verbose       bool
-		shouldMove    bool
+		name       string
+		force      bool
+		dryRun     bool
+		verbose    bool
+		shouldMove bool
 	}{
 		{
 			name:       "force flag moves without prompt",

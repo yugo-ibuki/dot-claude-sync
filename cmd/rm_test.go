@@ -55,12 +55,12 @@ func TestRunRm(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		args           []string
-		setupFiles     func()
-		wantErr        bool
-		checkAfter     func(t *testing.T)
-		setupFlags     func()
+		name       string
+		args       []string
+		setupFiles func()
+		wantErr    bool
+		checkAfter func(t *testing.T)
+		setupFlags func()
 	}{
 		{
 			name: "delete existing file from multiple projects",
@@ -203,10 +203,10 @@ func TestDeleteTarget(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		path     string
-		exists   bool
-		isDir    bool
+		name   string
+		path   string
+		exists bool
+		isDir  bool
 	}{
 		{
 			name:   "existing file",
@@ -271,10 +271,10 @@ func TestRmCommandFlags(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		force      bool
-		dryRun     bool
-		verbose    bool
+		name        string
+		force       bool
+		dryRun      bool
+		verbose     bool
 		shouldExist bool
 	}{
 		{

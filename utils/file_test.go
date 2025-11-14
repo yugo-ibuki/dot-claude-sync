@@ -415,8 +415,8 @@ func TestFileHash(t *testing.T) {
 
 		// Verify different content produces different hash
 		testFile2 := filepath.Join(tmpDir, "hash_test2.txt")
-		if err := os.WriteFile(testFile2, []byte("different content"), 0644); err != nil {
-			t.Fatalf("Failed to create second test file: %v", err)
+		if writeErr := os.WriteFile(testFile2, []byte("different content"), 0644); writeErr != nil {
+			t.Fatalf("Failed to create second test file: %v", writeErr)
 		}
 
 		hash3, err := FileHash(testFile2)
@@ -451,12 +451,12 @@ func TestFormatSize(t *testing.T) {
 		},
 		{
 			name:     "kilobytes",
-			size:     1536,      // 1.5 KB
+			size:     1536, // 1.5 KB
 			expected: "1.5 KB",
 		},
 		{
 			name:     "megabytes",
-			size:     1572864,   // 1.5 MB
+			size:     1572864, // 1.5 MB
 			expected: "1.5 MB",
 		},
 		{

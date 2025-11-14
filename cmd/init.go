@@ -32,11 +32,14 @@ func runInit(cmd *cobra.Command, args []string) error {
 	configPath := filepath.Join(configDir, "config.yaml")
 
 	// Check if config already exists
-	if _, err := os.Stat(configPath); err == nil && !force {
+	if _, statErr := os.Stat(configPath); statErr == nil && !force {
 		fmt.Printf("Configuration file already exists: %s\n", configPath)
 		fmt.Print("Overwrite? [y/N]: ")
 		var response string
-		fmt.Scanln(&response)
+		if _, scanErr := fmt.Scanln(&response); scanErr != nil {
+			fmt.Println("Cancelled")
+			return nil
+		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Cancelled")
 			return nil
@@ -49,8 +52,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create config directory
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
+	if mkdirErr := os.MkdirAll(configDir, 0755); mkdirErr != nil {
+		return fmt.Errorf("failed to create config directory: %w", mkdirErr)
 	}
 
 	// Interactive configuration
@@ -129,8 +132,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 			fmt.Print("Set priority order? [y/N]: ")
 			var setPriority string
-			fmt.Scanln(&setPriority)
-			if setPriority == "y" || setPriority == "Y" {
+			if _, scanErr := fmt.Scanln(&setPriority); scanErr == nil && (setPriority == "y" || setPriority == "Y") {
 				priority := make([]string, 0)
 				for alias := range paths {
 					priority = append(priority, alias)
@@ -156,7 +158,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

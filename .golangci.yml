@@ -27,7 +27,8 @@ linters-settings:
     check-blank: false
 
   govet:
-    check-shadowing: true
+    enable:
+      - shadow
 
   gofmt:
     simplify: true

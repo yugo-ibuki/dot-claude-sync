@@ -29,11 +29,11 @@ func TestPushWorkflow(t *testing.T) {
 	t.Run("collect files from multiple projects", func(t *testing.T) {
 		// Create test files in different projects
 		files := map[string]string{
-			filepath.Join(project1, "prompts", "coding.md"):   "coding prompt from project1",
-			filepath.Join(project1, "config.json"):            `{"setting": "value1"}`,
-			filepath.Join(project2, "prompts", "coding.md"):   "coding prompt from project2",
-			filepath.Join(project2, "prompts", "testing.md"):  "testing prompt from project2",
-			filepath.Join(project3, "prompts", "review.md"):   "review prompt from project3",
+			filepath.Join(project1, "prompts", "coding.md"):  "coding prompt from project1",
+			filepath.Join(project1, "config.json"):           `{"setting": "value1"}`,
+			filepath.Join(project2, "prompts", "coding.md"):  "coding prompt from project2",
+			filepath.Join(project2, "prompts", "testing.md"): "testing prompt from project2",
+			filepath.Join(project3, "prompts", "review.md"):  "review prompt from project3",
 		}
 
 		for path, content := range files {
