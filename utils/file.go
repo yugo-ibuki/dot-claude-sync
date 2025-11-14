@@ -15,6 +15,21 @@ func CopyFile(src, dst string) error {
 	src = expandPath(src)
 	dst = expandPath(dst)
 
+	// Check if source and destination are the same file
+	srcAbs, err := filepath.Abs(src)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for source: %w", err)
+	}
+	dstAbs, err := filepath.Abs(dst)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for destination: %w", err)
+	}
+
+	if srcAbs == dstAbs {
+		// Source and destination are the same file, skip copy
+		return nil
+	}
+
 	sourceFile, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("failed to open source file: %w", err)
