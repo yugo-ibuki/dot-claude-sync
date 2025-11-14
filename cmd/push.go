@@ -34,15 +34,15 @@ func runPush(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	group, err := cfg.GetGroup(groupName)
-	if err != nil {
+	group, groupErr := cfg.GetGroup(groupName)
+	if groupErr != nil {
 		availableGroups := cfg.ListGroups()
-		return fmt.Errorf("%w\nAvailable groups: %v", err, availableGroups)
+		return fmt.Errorf("%w\nAvailable groups: %v", groupErr, availableGroups)
 	}
 
-	projects, err := group.GetProjectPaths()
-	if err != nil {
-		return fmt.Errorf("failed to parse group paths: %w", err)
+	projects, projectsErr := group.GetProjectPaths()
+	if projectsErr != nil {
+		return fmt.Errorf("failed to parse group paths: %w", projectsErr)
 	}
 
 	if dryRun {
@@ -53,9 +53,9 @@ func runPush(cmd *cobra.Command, args []string) error {
 	// Phase 1: Collect files
 	fmt.Printf("Collecting files from group '%s'...\n", groupName)
 
-	allFiles, err := syncer.CollectFiles(projects)
-	if err != nil {
-		return fmt.Errorf("failed to collect files: %w", err)
+	allFiles, collectErr := syncer.CollectFiles(projects)
+	if collectErr != nil {
+		return fmt.Errorf("failed to collect files: %w", collectErr)
 	}
 
 	// Show collection results
@@ -81,9 +81,9 @@ func runPush(cmd *cobra.Command, args []string) error {
 	// Phase 2: Resolve conflicts
 	fmt.Println("\nResolving conflicts...")
 
-	resolved, conflicts, err := syncer.ResolveConflicts(allFiles)
-	if err != nil {
-		return fmt.Errorf("failed to resolve conflicts: %w", err)
+	resolved, conflicts, resolveErr := syncer.ResolveConflicts(allFiles)
+	if resolveErr != nil {
+		return fmt.Errorf("failed to resolve conflicts: %w", resolveErr)
 	}
 
 	if len(conflicts) > 0 {
@@ -104,9 +104,9 @@ func runPush(cmd *cobra.Command, args []string) error {
 	// Phase 3: Sync files
 	fmt.Println("\nSyncing...")
 
-	results, err := syncer.SyncFiles(resolved, projects, dryRun, verbose)
-	if err != nil {
-		return fmt.Errorf("failed to sync files: %w", err)
+	results, syncErr := syncer.SyncFiles(resolved, projects, dryRun, verbose)
+	if syncErr != nil {
+		return fmt.Errorf("failed to sync files: %w", syncErr)
 	}
 
 	if !verbose {
