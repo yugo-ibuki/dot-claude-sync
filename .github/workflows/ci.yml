@@ -9,10 +9,9 @@ on:
 jobs:
   test:
     name: Test
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
         go: ['1.22', '1.23']
 
     steps:
@@ -44,7 +43,7 @@ jobs:
       run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.go == '1.23'
+      if: matrix.go == '1.23'
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.txt
@@ -73,10 +72,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
@@ -88,7 +84,7 @@ jobs:
         go-version: '1.23'
 
     - name: Build
-      run: go build -v -o claude-sync${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+      run: go build -v -o claude-sync
 
     - name: Test binary
-      run: ./claude-sync${{ matrix.os == 'windows-latest' && '.exe' || '' }} --version
+      run: ./claude-sync --version
