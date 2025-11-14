@@ -26,4 +26,4 @@ go.work
 .DS_Store
 Thumbs.db
 
-.claude
+.claude.github/
