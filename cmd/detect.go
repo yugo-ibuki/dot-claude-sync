@@ -9,8 +9,9 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yugo-ibuki/dot-claude-sync/config"
 	"gopkg.in/yaml.v3"
+
+	"github.com/yugo-ibuki/dot-claude-sync/config"
 )
 
 var detectCmd = &cobra.Command{
@@ -27,7 +28,9 @@ var groupName string
 func init() {
 	rootCmd.AddCommand(detectCmd)
 	detectCmd.Flags().StringVarP(&groupName, "group", "g", "", "group name to add detected paths (required)")
-	detectCmd.MarkFlagRequired("group")
+	if err := detectCmd.MarkFlagRequired("group"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag as required: %v", err))
+	}
 }
 
 func runDetect(cmd *cobra.Command, args []string) error {
@@ -201,9 +204,7 @@ func addPathsToGroup(cfg *config.Config, groupName string, paths []string) error
 		group.Paths = pathList
 	case []string:
 		// Append to list (should not happen after YAML unmarshal, but handle it)
-		for _, p := range paths {
-			existingPaths = append(existingPaths, p)
-		}
+		existingPaths = append(existingPaths, paths...)
 		// Convert to []interface{} for YAML marshaling
 		interfaceList := make([]interface{}, len(existingPaths))
 		for i, v := range existingPaths {
