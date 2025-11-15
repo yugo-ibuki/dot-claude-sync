@@ -1,5 +1,6 @@
 # Binaries
 claude-sync
+dot-claude-sync
 *.exe
 *.exe~
 *.dll
