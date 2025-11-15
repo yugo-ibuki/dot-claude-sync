@@ -14,7 +14,7 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize configuration file",
-	Long:  `Create a new configuration file at ~/.config/claude-sync/config.yaml with interactive prompts.`,
+	Long:  `Create a new configuration file at ~/.config/dot-claude-sync/config.yaml with interactive prompts.`,
 	RunE:  runInit,
 }
 
@@ -28,7 +28,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	configDir := filepath.Join(homeDir, ".config", "claude-sync")
+	configDir := filepath.Join(homeDir, ".config", "dot-claude-sync")
 	configPath := filepath.Join(configDir, "config.yaml")
 
 	// Check if config already exists
@@ -167,8 +167,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Println("Next steps:")
 	fmt.Printf("  1. Edit the config file: vim %s\n", configPath)
-	fmt.Printf("  2. View your groups: claude-sync list\n")
-	fmt.Printf("  3. Sync files: claude-sync push %s\n", groupName)
+	fmt.Printf("  2. View your groups: dot-claude-sync list\n")
+	fmt.Printf("  3. Sync files: dot-claude-sync push %s\n", groupName)
 
 	return nil
 }

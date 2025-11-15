@@ -18,7 +18,7 @@ func TestLoadConfig(t *testing.T) {
 		tmpHome := t.TempDir()
 		os.Setenv("HOME", tmpHome)
 
-		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		configDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 		configPath := filepath.Join(configDir, "config.yaml")
 
 		// Create config directory
@@ -60,7 +60,7 @@ groups:
 		tmpHome := t.TempDir()
 		os.Setenv("HOME", tmpHome)
 
-		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		configDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 		configPath := filepath.Join(configDir, "config.yaml")
 
 		if err := os.MkdirAll(configDir, 0755); err != nil {
@@ -126,7 +126,7 @@ groups:
 		tmpHome := t.TempDir()
 		os.Setenv("HOME", tmpHome)
 
-		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		configDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 		configPath := filepath.Join(configDir, "config.yaml")
 
 		if err := os.MkdirAll(configDir, 0755); err != nil {
@@ -444,7 +444,7 @@ func TestSave(t *testing.T) {
 		defer os.Unsetenv("HOME")
 
 		// Create config directory
-		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		configDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 		if err := os.MkdirAll(configDir, 0755); err != nil {
 			t.Fatalf("Failed to create config directory: %v", err)
 		}

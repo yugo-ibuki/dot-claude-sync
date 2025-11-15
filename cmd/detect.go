@@ -122,8 +122,8 @@ func runDetect(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("\n✓ Added %d path%s to group '%s'\n", len(claudeDirs), pluralize(len(claudeDirs)), groupName)
 	fmt.Println("\nNext steps:")
-	fmt.Printf("  1. Review configuration: claude-sync list %s\n", groupName)
-	fmt.Printf("  2. Sync files: claude-sync push %s\n", groupName)
+	fmt.Printf("  1. Review configuration: dot-claude-sync list %s\n", groupName)
+	fmt.Printf("  2. Sync files: dot-claude-sync push %s\n", groupName)
 
 	return nil
 }
@@ -225,7 +225,7 @@ func saveConfig(cfg *config.Config) error {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	configDir := filepath.Join(homeDir, ".config", "claude-sync")
+	configDir := filepath.Join(homeDir, ".config", "dot-claude-sync")
 	configPath := filepath.Join(configDir, "config.yaml")
 
 	// Use custom config path if specified

@@ -62,9 +62,9 @@ func getConfigPath(configPath string) (string, error) {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	defaultPath := filepath.Join(homeDir, ".config", "claude-sync", "config.yaml")
+	defaultPath := filepath.Join(homeDir, ".config", "dot-claude-sync", "config.yaml")
 	if _, err := os.Stat(defaultPath); err != nil {
-		return "", fmt.Errorf("configuration file not found: %s\n\nRun 'claude-sync init' to create a configuration file, or use --config flag", defaultPath)
+		return "", fmt.Errorf("configuration file not found: %s\n\nRun 'dot-claude-sync init' to create a configuration file, or use --config flag", defaultPath)
 	}
 
 	return defaultPath, nil
@@ -181,7 +181,7 @@ func getConfigPathForSave(configPath string) (string, error) {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	return filepath.Join(homeDir, ".config", "claude-sync", "config.yaml"), nil
+	return filepath.Join(homeDir, ".config", "dot-claude-sync", "config.yaml"), nil
 }
 
 // AddGroup adds a new group to the configuration
