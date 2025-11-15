@@ -104,7 +104,7 @@ func runPush(cmd *cobra.Command, args []string) error {
 	// Phase 3: Sync files
 	fmt.Println("\nSyncing...")
 
-	results, err := syncer.SyncFiles(resolved, projects, dryRun, verbose)
+	results, err := syncer.SyncFiles(resolved, projects, dryRun, verbose, force)
 	if err != nil {
 		return fmt.Errorf("failed to sync files: %w", err)
 	}
