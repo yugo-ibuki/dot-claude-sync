@@ -17,14 +17,6 @@ However, modern CLI Agent workflows increasingly rely on **git worktrees** to ma
 
 **claude-sync solves this problem** by providing a simple tool to share and synchronize `.claude` directory contents across worktrees and independent projects within your workspace.
 
-### なぜclaude-syncが必要なのか？
-
-Claude Codeを使う際に、progressを記録して長期間のコンテキストとして残したり、自分で見返すためのspecとしてdocumentを作成することが一般的で効率的です。`.claude`内にdocumentを作成するのが理想的な理由は、gitで管理しないため汚染を防ぐことができるためです（基本的に`.claude`はignoreされます）。
-
-しかし、CLI Agentを利用する時によく使われる機能として、**git worktree**が主流になっています。これにより複数の開発ブランチを同時に管理できますが、問題があります：`.claude`のdocumentはgitで管理されていないため、worktree間の共有やsyncが面倒です。さらに、あるworktreeで作成したcommandsやskillsなどを他のworktreeでも使いたいことがよくあります。
-
-**claude-syncはこの問題を解決します**。worktreeや独立したプロジェクト間で`.claude`ディレクトリの内容を簡単に共有・同期するツールを提供します。
-
 ## Installation
 
 ```bash
