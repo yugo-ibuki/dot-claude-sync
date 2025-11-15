@@ -6,16 +6,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 claude-sync is a CLI tool that synchronizes `.claude` directories across multiple independent projects in a workspace. It manages files in groups, performs bulk operations (add, overwrite, delete, move), and resolves conflicts based on configurable priority settings.
 
-## Build and Development Commands
+## Installation and Deployment
+
+### For End Users
+
+**Option 1: Install via `go install` (Recommended)**
+```bash
+go install github.com/yugo-ibuki/dot-claude-sync@latest
+```
+This installs the binary to `$GOPATH/bin` (usually `~/go/bin`).
+
+**Option 2: Build from source**
+```bash
+git clone https://github.com/yugo-ibuki/dot-claude-sync.git
+cd dot-claude-sync
+go build
+./dot-claude-sync
+```
+
+**Option 3: Download pre-built binaries**
+Download from GitHub Releases (if available).
+
+### For Development
 
 ```bash
 # Build the binary
-go build -o claude-sync
+go build -o dot-claude-sync
 
-# Install locally
+# Install locally to $GOPATH/bin
 go install
 
-# Run directly
+# Run directly without building
 go run main.go <command>
 
 # Run with specific command
@@ -27,6 +48,8 @@ go run main.go list
 go mod tidy
 go mod verify
 ```
+
+**Important**: Build artifacts (`dot-claude-sync`, `claude-sync`) are excluded from git via `.gitignore`. Do not commit binaries to the repository.
 
 ## Architecture
 
