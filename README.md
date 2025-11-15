@@ -1,4 +1,4 @@
-# claude-sync
+# dot-claude-sync
 
 [![CI](https://github.com/yugo-ibuki/dot-claude-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/yugo-ibuki/dot-claude-sync/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/yugo-ibuki/dot-claude-sync)](https://goreportcard.com/report/github.com/yugo-ibuki/dot-claude-sync)
@@ -9,13 +9,13 @@ Manage files in groups and perform bulk operations like add, overwrite, delete, 
 
 ## Concept
 
-### Why claude-sync?
+### Why dot-claude-sync?
 
 When working with Claude Code, it's common and efficient to record progress within the `.claude` directory as long-term context or as spec documentation for future reference. Storing these documents in `.claude` is ideal because they're typically git-ignored (preventing repository pollution) while remaining accessible to Claude.
 
 However, modern CLI Agent workflows increasingly rely on **git worktrees** to manage multiple development branches simultaneously. This creates a challenge: `.claude` documents aren't tracked by git, making it tedious to share and synchronize them across worktrees. Additionally, useful commands and skills created in one worktree often need to be available in others.
 
-**claude-sync solves this problem** by providing a simple tool to share and synchronize `.claude` directory contents across worktrees and independent projects within your workspace.
+**dot-claude-sync solves this problem** by providing a simple tool to share and synchronize `.claude` directory contents across worktrees and independent projects within your workspace.
 
 ## Installation
 
@@ -28,7 +28,7 @@ Or build from source:
 ```bash
 git clone https://github.com/yugo-ibuki/dot-claude-sync.git
 cd dot-claude-sync
-go build -o claude-sync
+go build
 ```
 
 ## Quick Start
@@ -38,16 +38,16 @@ go build -o claude-sync
 Run the init command to create your configuration file:
 
 ```bash
-claude-sync init
+dot-claude-sync init
 ```
 
-This will interactively guide you through creating `~/.config/claude-sync/config.yaml`.
+This will interactively guide you through creating `~/.config/dot-claude-sync/config.yaml`.
 
 Alternatively, you can create the file manually:
 
 ```bash
-mkdir -p ~/.config/claude-sync
-vim ~/.config/claude-sync/config.yaml
+mkdir -p ~/.config/dot-claude-sync
+vim ~/.config/dot-claude-sync/config.yaml
 ```
 
 Example configuration:
@@ -69,7 +69,7 @@ groups:
 
 ```bash
 # Sync all projects in the web-projects group
-claude-sync push web-projects
+dot-claude-sync push web-projects
 ```
 
 This distributes `.claude` directory contents across all projects based on priority settings.
@@ -78,13 +78,13 @@ This distributes `.claude` directory contents across all projects based on prior
 
 | Command | Description |
 |---------|-------------|
-| `claude-sync init` | Initialize configuration file interactively |
-| `claude-sync detect <worktree-root> --group <group>` | Auto-detect .claude directories from git worktrees |
-| `claude-sync push <group>` | Sync files across all projects in a group |
-| `claude-sync rm <group> <path>` | Delete files from all projects in a group |
-| `claude-sync mv <group> <from> <to>` | Move/rename files in all projects |
-| `claude-sync list [group]` | Show groups or group details |
-| `claude-sync config <subcommand>` | Manage configuration (add/remove groups and projects) |
+| `dot-claude-sync init` | Initialize configuration file interactively |
+| `dot-claude-sync detect <worktree-root> --group <group>` | Auto-detect .claude directories from git worktrees |
+| `dot-claude-sync push <group>` | Sync files across all projects in a group |
+| `dot-claude-sync rm <group> <path>` | Delete files from all projects in a group |
+| `dot-claude-sync mv <group> <from> <to>` | Move/rename files in all projects |
+| `dot-claude-sync list [group]` | Show groups or group details |
+| `dot-claude-sync config <subcommand>` | Manage configuration (add/remove groups and projects) |
 
 ## Features
 
@@ -94,13 +94,13 @@ Creates the configuration file with interactive prompts.
 
 ```bash
 # Interactive setup
-claude-sync init
+dot-claude-sync init
 
 # Overwrite existing config without confirmation
-claude-sync init --force
+dot-claude-sync init --force
 
 # Preview what will be created
-claude-sync init --dry-run
+dot-claude-sync init --dry-run
 ```
 
 ### 🔍 detect - Auto-Detect Worktree Paths
@@ -109,17 +109,17 @@ Automatically detects `.claude` directories from git worktrees and adds them to 
 
 ```bash
 # Detect .claude directories in all worktrees
-claude-sync detect <worktree-root> --group <group-name>
+dot-claude-sync detect <worktree-root> --group <group-name>
 
 # Examples
-claude-sync detect ~/ghq/github.com/user --group go-projects
-claude-sync detect . --group current-project
+dot-claude-sync detect ~/ghq/github.com/user --group go-projects
+dot-claude-sync detect . --group current-project
 
 # Preview detection without adding
-claude-sync detect ~/projects --group web-projects --dry-run
+dot-claude-sync detect ~/projects --group web-projects --dry-run
 
 # Add without confirmation
-claude-sync detect ~/workspace --group python-services --force
+dot-claude-sync detect ~/workspace --group python-services --force
 ```
 
 **How it works:**
@@ -136,7 +136,7 @@ Perfect for projects using git worktrees where you have multiple branches checke
 Collects `.claude` directory files from all projects in a group and distributes them based on priority.
 
 ```bash
-claude-sync push <group>
+dot-claude-sync push <group>
 ```
 
 **How it works:**
@@ -149,11 +149,11 @@ claude-sync push <group>
 Deletes specified files or directories from all projects in a group.
 
 ```bash
-claude-sync rm <group> <path>
+dot-claude-sync rm <group> <path>
 
 # Examples
-claude-sync rm web-projects prompts/old-prompt.md
-claude-sync rm python-services prompts/deprecated/  # Delete entire directory
+dot-claude-sync rm web-projects prompts/old-prompt.md
+dot-claude-sync rm python-services prompts/deprecated/  # Delete entire directory
 ```
 
 ### 📝 mv - Move/Rename Files
@@ -161,11 +161,11 @@ claude-sync rm python-services prompts/deprecated/  # Delete entire directory
 Moves or renames files or directories across all projects in a group.
 
 ```bash
-claude-sync mv <group> <from> <to>
+dot-claude-sync mv <group> <from> <to>
 
 # Examples
-claude-sync mv web-projects prompts/old.md prompts/new.md
-claude-sync mv python-services old-dir/ new-dir/
+dot-claude-sync mv web-projects prompts/old.md prompts/new.md
+dot-claude-sync mv python-services old-dir/ new-dir/
 ```
 
 ### 📋 list - List Groups
@@ -174,10 +174,10 @@ Shows list of configured groups or details of a specific group.
 
 ```bash
 # Show all groups
-claude-sync list
+dot-claude-sync list
 
 # Show details of a specific group
-claude-sync list web-projects
+dot-claude-sync list web-projects
 ```
 
 ### ⚙️ config - Manage Configuration
@@ -188,40 +188,40 @@ Manage groups and projects in the configuration file directly from the command l
 
 ```bash
 # Show all groups and their projects
-claude-sync config show
+dot-claude-sync config show
 
 # Show details of a specific group
-claude-sync config show web-projects
+dot-claude-sync config show web-projects
 ```
 
 #### Manage Groups
 
 ```bash
 # Add a new group
-claude-sync config add-group mobile-projects
+dot-claude-sync config add-group mobile-projects
 
 # Remove a group (with confirmation)
-claude-sync config remove-group old-group
+dot-claude-sync config remove-group old-group
 
 # Remove a group without confirmation
-claude-sync config remove-group old-group --force
+dot-claude-sync config remove-group old-group --force
 ```
 
 #### Manage Projects
 
 ```bash
 # Add a project to a group
-claude-sync config add-project web-projects new-app ~/projects/new-app/.claude
+dot-claude-sync config add-project web-projects new-app ~/projects/new-app/.claude
 
 # Remove a project from a group
-claude-sync config remove-project web-projects old-app
+dot-claude-sync config remove-project web-projects old-app
 ```
 
 #### Set Priority
 
 ```bash
 # Set priority order for a group (first = highest priority)
-claude-sync config set-priority web-projects shared frontend backend
+dot-claude-sync config set-priority web-projects shared frontend backend
 
 # The command above sets:
 # 1. shared (highest priority)
@@ -233,15 +233,15 @@ claude-sync config set-priority web-projects shared frontend backend
 
 ```bash
 # Create a new group and add projects
-claude-sync config add-group client-projects
-claude-sync config add-project client-projects acme ~/clients/acme/.claude
-claude-sync config add-project client-projects beta ~/clients/beta/.claude
+dot-claude-sync config add-group client-projects
+dot-claude-sync config add-project client-projects acme ~/clients/acme/.claude
+dot-claude-sync config add-project client-projects beta ~/clients/beta/.claude
 
 # Set priority
-claude-sync config set-priority client-projects acme beta
+dot-claude-sync config set-priority client-projects acme beta
 
 # Verify configuration
-claude-sync config show client-projects
+dot-claude-sync config show client-projects
 
 # Output:
 # Group: client-projects
@@ -263,10 +263,10 @@ claude-sync config show client-projects
 Configuration file is located at a **fixed location**:
 
 ```
-~/.config/claude-sync/config.yaml
+~/.config/dot-claude-sync/config.yaml
 ```
 
-This allows you to run `claude-sync` from any directory and it will always use the same configuration.
+This allows you to run `dot-claude-sync` from any directory and it will always use the same configuration.
 
 You can override this with the `--config` flag to use a different configuration file.
 
@@ -346,9 +346,9 @@ Options available for all commands:
 
 **Examples:**
 ```bash
-claude-sync push web-projects --dry-run
-claude-sync rm python-services old.md --force
-claude-sync push client-projects --config ~/.config/claude-sync/custom-config.yaml
+dot-claude-sync push web-projects --dry-run
+dot-claude-sync rm python-services old.md --force
+dot-claude-sync push client-projects --config ~/.config/dot-claude-sync/custom-config.yaml
 ```
 
 ## Use Cases
@@ -359,13 +359,13 @@ If you're using git worktrees, you can quickly set up a group by auto-detecting 
 
 ```bash
 # Detect and add all worktree .claude directories
-claude-sync detect ~/projects/my-app --group my-app-features
+dot-claude-sync detect ~/projects/my-app --group my-app-features
 
 # Verify detected paths
-claude-sync list my-app-features
+dot-claude-sync list my-app-features
 
 # Start syncing
-claude-sync push my-app-features
+dot-claude-sync push my-app-features
 ```
 
 This is much faster than manually adding each worktree path to your configuration.
@@ -378,24 +378,24 @@ cd ~/projects/web-frontend/.claude/prompts
 vim new-feature.md
 
 # Distribute to all projects in the group
-claude-sync push web-projects
+dot-claude-sync push web-projects
 ```
 
 ### Case 3: Delete Old Prompts from All Projects
 
 ```bash
 # Verify before deletion
-claude-sync rm python-services prompts/deprecated/ --dry-run
+dot-claude-sync rm python-services prompts/deprecated/ --dry-run
 
 # Execute deletion
-claude-sync rm python-services prompts/deprecated/
+dot-claude-sync rm python-services prompts/deprecated/
 ```
 
 ### Case 4: Standardize File Names Across Workspace
 
 ```bash
 # Bulk rename across all projects in the group
-claude-sync mv web-projects old-name.md new-name.md
+dot-claude-sync mv web-projects old-name.md new-name.md
 ```
 
 ### Case 5: Distribute Configuration from Master Project
@@ -414,14 +414,14 @@ web-projects:
 
 ```bash
 # All projects will be unified with shared configuration
-claude-sync push web-projects
+dot-claude-sync push web-projects
 ```
 
 ### Case 6: Sync Client Project Templates
 
 ```bash
 # Set up configuration for multiple client projects
-# ~/.config/claude-sync/config.yaml
+# ~/.config/dot-claude-sync/config.yaml
 groups:
   client-templates:
     paths:
@@ -433,37 +433,37 @@ groups:
       - template  # template is the source of truth
 
 # Distribute template to all client projects
-claude-sync push client-templates
+dot-claude-sync push client-templates
 ```
 
 ### Case 6: Add New Project to Existing Group
 
 ```bash
 # New project created, add it to existing group
-claude-sync config add-project web-projects new-service ~/projects/new-service/.claude
+dot-claude-sync config add-project web-projects new-service ~/projects/new-service/.claude
 
 # Set it as highest priority if needed
-claude-sync config set-priority web-projects new-service frontend backend
+dot-claude-sync config set-priority web-projects new-service frontend backend
 
 # Sync configuration to the new project
-claude-sync push web-projects
+dot-claude-sync push web-projects
 ```
 
 ### Case 7: Quick Configuration Management
 
 ```bash
 # View current configuration
-claude-sync config show
+dot-claude-sync config show
 
 # Add a temporary project group for experimentation
-claude-sync config add-group experimental
-claude-sync config add-project experimental test-app ~/workspace/test-app/.claude
+dot-claude-sync config add-group experimental
+dot-claude-sync config add-project experimental test-app ~/workspace/test-app/.claude
 
 # Try it out
-claude-sync push experimental
+dot-claude-sync push experimental
 
 # Remove when done
-claude-sync config remove-group experimental --force
+dot-claude-sync config remove-group experimental --force
 ```
 
 ## Important Notes
@@ -477,14 +477,14 @@ claude-sync config remove-group experimental --force
 
 ## Uninstall
 
-To completely remove claude-sync:
+To completely remove dot-claude-sync:
 
 ```bash
 # Remove the binary
-rm $(which claude-sync)
+rm $(which dot-claude-sync)
 
 # Remove the configuration directory
-rm -rf ~/.config/claude-sync
+rm -rf ~/.config/dot-claude-sync
 ```
 
 ## License
