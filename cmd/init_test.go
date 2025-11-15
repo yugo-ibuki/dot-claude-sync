@@ -19,7 +19,7 @@ func TestInitCommand(t *testing.T) {
 		tmpHome := t.TempDir()
 		os.Setenv("HOME", tmpHome)
 
-		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		configDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 		configPath := filepath.Join(configDir, "config.yaml")
 
 		// Test the config creation logic (without interactive input)
@@ -89,7 +89,7 @@ func TestInitCommand(t *testing.T) {
 		tmpHome := t.TempDir()
 		os.Setenv("HOME", tmpHome)
 
-		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		configDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 
 		// Verify directory doesn't exist yet
 		if _, err := os.Stat(configDir); !os.IsNotExist(err) {
@@ -158,7 +158,7 @@ func TestInitCommand(t *testing.T) {
 		tmpHome := t.TempDir()
 		os.Setenv("HOME", tmpHome)
 
-		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		configDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 		configPath := filepath.Join(configDir, "config.yaml")
 
 		// Create directory
@@ -192,7 +192,7 @@ func TestInitCommand(t *testing.T) {
 		tmpHome := t.TempDir()
 		os.Setenv("HOME", tmpHome)
 
-		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		configDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 		configPath := filepath.Join(configDir, "config.yaml")
 
 		// Create config with list format
@@ -257,7 +257,7 @@ func TestInitCommand(t *testing.T) {
 		tmpHome := t.TempDir()
 		os.Setenv("HOME", tmpHome)
 
-		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		configDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 		configPath := filepath.Join(configDir, "config.yaml")
 
 		if err := os.MkdirAll(configDir, 0755); err != nil {
@@ -338,10 +338,10 @@ func TestConfigPath(t *testing.T) {
 			t.Fatalf("Failed to get home directory: %v", err)
 		}
 
-		configDir := filepath.Join(homeDir, ".config", "claude-sync")
+		configDir := filepath.Join(homeDir, ".config", "dot-claude-sync")
 		configPath := filepath.Join(configDir, "config.yaml")
 
-		expectedConfigDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		expectedConfigDir := filepath.Join(tmpHome, ".config", "dot-claude-sync")
 		expectedConfigPath := filepath.Join(expectedConfigDir, "config.yaml")
 
 		if configDir != expectedConfigDir {
