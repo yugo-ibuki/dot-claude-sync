@@ -73,6 +73,7 @@ This distributes `.claude` directory contents across all projects based on prior
 | `claude-sync rm <group> <path>` | Delete files from all projects in a group |
 | `claude-sync mv <group> <from> <to>` | Move/rename files in all projects |
 | `claude-sync list [group]` | Show groups or group details |
+| `claude-sync config <subcommand>` | Manage configuration (add/remove groups and projects) |
 
 ## Features
 
@@ -138,6 +139,81 @@ claude-sync list
 
 # Show details of a specific group
 claude-sync list web-projects
+```
+
+### ⚙️ config - Manage Configuration
+
+Manage groups and projects in the configuration file directly from the command line.
+
+#### Show Configuration
+
+```bash
+# Show all groups and their projects
+claude-sync config show
+
+# Show details of a specific group
+claude-sync config show web-projects
+```
+
+#### Manage Groups
+
+```bash
+# Add a new group
+claude-sync config add-group mobile-projects
+
+# Remove a group (with confirmation)
+claude-sync config remove-group old-group
+
+# Remove a group without confirmation
+claude-sync config remove-group old-group --force
+```
+
+#### Manage Projects
+
+```bash
+# Add a project to a group
+claude-sync config add-project web-projects new-app ~/projects/new-app/.claude
+
+# Remove a project from a group
+claude-sync config remove-project web-projects old-app
+```
+
+#### Set Priority
+
+```bash
+# Set priority order for a group (first = highest priority)
+claude-sync config set-priority web-projects shared frontend backend
+
+# The command above sets:
+# 1. shared (highest priority)
+# 2. frontend (second priority)
+# 3. backend (third priority)
+```
+
+**Examples:**
+
+```bash
+# Create a new group and add projects
+claude-sync config add-group client-projects
+claude-sync config add-project client-projects acme ~/clients/acme/.claude
+claude-sync config add-project client-projects beta ~/clients/beta/.claude
+
+# Set priority
+claude-sync config set-priority client-projects acme beta
+
+# Verify configuration
+claude-sync config show client-projects
+
+# Output:
+# Group: client-projects
+#
+# Projects (2):
+#   [1] acme
+#       ~/clients/acme/.claude
+#   [2] beta
+#       ~/clients/beta/.claude
+#
+# Priority: [acme beta]
 ```
 
 
@@ -302,6 +378,36 @@ groups:
 
 # Distribute template to all client projects
 claude-sync push client-templates
+```
+
+### Case 6: Add New Project to Existing Group
+
+```bash
+# New project created, add it to existing group
+claude-sync config add-project web-projects new-service ~/projects/new-service/.claude
+
+# Set it as highest priority if needed
+claude-sync config set-priority web-projects new-service frontend backend
+
+# Sync configuration to the new project
+claude-sync push web-projects
+```
+
+### Case 7: Quick Configuration Management
+
+```bash
+# View current configuration
+claude-sync config show
+
+# Add a temporary project group for experimentation
+claude-sync config add-group experimental
+claude-sync config add-project experimental test-app ~/workspace/test-app/.claude
+
+# Try it out
+claude-sync push experimental
+
+# Remove when done
+claude-sync config remove-group experimental --force
 ```
 
 ## Important Notes
