@@ -2,6 +2,31 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL: Git Remote Operations Policy
+
+**NEVER execute the following commands without explicit user instruction:**
+- `git push`
+- `git push --force`
+- `git push --force-with-lease`
+- `git tag` (with push)
+- Any command that modifies remote repository state
+
+**Always ask for confirmation before:**
+- Pushing commits to remote
+- Creating or pushing tags
+- Any operation that affects the remote repository
+
+**Allowed without confirmation:**
+- Local commits (`git commit`)
+- Staging files (`git add`)
+- Creating local branches
+- Local git operations that don't affect remote
+
+**If asked "did you commit?" or similar:**
+- Answer only about the local commit status
+- Do NOT proceed to push without explicit instruction
+- Ask if the user wants to push
+
 ## Project Overview
 
 claude-sync is a CLI tool that synchronizes `.claude` directories across multiple independent projects in a workspace. It manages files in groups, performs bulk operations (add, overwrite, delete, move), and resolves conflicts based on configurable priority settings.
