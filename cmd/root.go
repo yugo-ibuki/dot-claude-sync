@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Short: "Sync .claude directories across multiple projects",
 	Long: `A CLI tool to synchronize .claude directories across multiple projects.
 Manage groups of projects and perform batch operations like add, overwrite, delete, and move files.`,
-	Version: "0.1.0",
+	Version: "0.1.2",
 }
 
 // Execute runs the root command
