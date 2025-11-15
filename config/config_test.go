@@ -402,6 +402,231 @@ func TestGetProjectPaths(t *testing.T) {
 	})
 }
 
+// TestSave tests the Save function
+func TestSave(t *testing.T) {
+	t.Run("save to explicit path", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		savePath := filepath.Join(tmpDir, "config.yaml")
+
+		cfg := &Config{
+			Groups: map[string]*Group{
+				"test-group": {
+					Paths: map[string]interface{}{
+						"project-a": "/path/to/a/.claude",
+					},
+				},
+			},
+		}
+
+		if err := cfg.Save(savePath); err != nil {
+			t.Fatalf("Failed to save config: %v", err)
+		}
+
+		// Verify file exists
+		if _, err := os.Stat(savePath); os.IsNotExist(err) {
+			t.Error("Config file should exist after save")
+		}
+
+		// Load and verify content
+		loaded, err := Load(savePath)
+		if err != nil {
+			t.Fatalf("Failed to load saved config: %v", err)
+		}
+
+		if _, ok := loaded.Groups["test-group"]; !ok {
+			t.Error("Saved config should contain test-group")
+		}
+	})
+
+	t.Run("save to default path", func(t *testing.T) {
+		tmpHome := t.TempDir()
+		os.Setenv("HOME", tmpHome)
+		defer os.Unsetenv("HOME")
+
+		// Create config directory
+		configDir := filepath.Join(tmpHome, ".config", "claude-sync")
+		if err := os.MkdirAll(configDir, 0755); err != nil {
+			t.Fatalf("Failed to create config directory: %v", err)
+		}
+
+		cfg := &Config{
+			Groups: map[string]*Group{
+				"default-test": {
+					Paths: []interface{}{"/path/to/test/.claude"},
+				},
+			},
+		}
+
+		if err := cfg.Save(""); err != nil {
+			t.Fatalf("Failed to save config: %v", err)
+		}
+
+		expectedPath := filepath.Join(configDir, "config.yaml")
+		if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
+			t.Error("Config file should exist at default location")
+		}
+	})
+}
+
+// TestAddGroup tests the AddGroup method
+func TestAddGroup(t *testing.T) {
+	cfg := &Config{
+		Groups: make(map[string]*Group),
+	}
+
+	t.Run("add new group", func(t *testing.T) {
+		if err := cfg.AddGroup("new-group"); err != nil {
+			t.Errorf("Failed to add group: %v", err)
+		}
+
+		if _, exists := cfg.Groups["new-group"]; !exists {
+			t.Error("Group should exist after adding")
+		}
+	})
+
+	t.Run("error on duplicate group", func(t *testing.T) {
+		if err := cfg.AddGroup("new-group"); err == nil {
+			t.Error("Should error when adding duplicate group")
+		}
+	})
+}
+
+// TestRemoveGroup tests the RemoveGroup method
+func TestRemoveGroup(t *testing.T) {
+	cfg := &Config{
+		Groups: map[string]*Group{
+			"existing-group": {
+				Paths: map[string]interface{}{"proj": "/path/.claude"},
+			},
+		},
+	}
+
+	t.Run("remove existing group", func(t *testing.T) {
+		if err := cfg.RemoveGroup("existing-group"); err != nil {
+			t.Errorf("Failed to remove group: %v", err)
+		}
+
+		if _, exists := cfg.Groups["existing-group"]; exists {
+			t.Error("Group should not exist after removal")
+		}
+	})
+
+	t.Run("error on non-existent group", func(t *testing.T) {
+		if err := cfg.RemoveGroup("non-existent"); err == nil {
+			t.Error("Should error when removing non-existent group")
+		}
+	})
+}
+
+// TestAddProject tests the AddProject method
+func TestAddProject(t *testing.T) {
+	cfg := &Config{
+		Groups: map[string]*Group{
+			"test-group": {
+				Paths: make(map[string]interface{}),
+			},
+		},
+	}
+
+	t.Run("add new project", func(t *testing.T) {
+		if err := cfg.AddProject("test-group", "new-proj", "/path/to/new/.claude"); err != nil {
+			t.Errorf("Failed to add project: %v", err)
+		}
+
+		group := cfg.Groups["test-group"]
+		pathsMap := group.Paths.(map[string]interface{})
+		if pathsMap["new-proj"] != "/path/to/new/.claude" {
+			t.Error("Project path should be set correctly")
+		}
+	})
+
+	t.Run("error on duplicate alias", func(t *testing.T) {
+		if err := cfg.AddProject("test-group", "new-proj", "/another/path/.claude"); err == nil {
+			t.Error("Should error when adding duplicate alias")
+		}
+	})
+
+	t.Run("error on non-existent group", func(t *testing.T) {
+		if err := cfg.AddProject("non-existent", "proj", "/path/.claude"); err == nil {
+			t.Error("Should error when group doesn't exist")
+		}
+	})
+}
+
+// TestRemoveProject tests the RemoveProject method
+func TestRemoveProject(t *testing.T) {
+	cfg := &Config{
+		Groups: map[string]*Group{
+			"test-group": {
+				Paths: map[string]interface{}{
+					"project-a": "/path/to/a/.claude",
+					"project-b": "/path/to/b/.claude",
+				},
+				Priority: []string{"project-a", "project-b"},
+			},
+		},
+	}
+
+	t.Run("remove existing project", func(t *testing.T) {
+		if err := cfg.RemoveProject("test-group", "project-a"); err != nil {
+			t.Errorf("Failed to remove project: %v", err)
+		}
+
+		group := cfg.Groups["test-group"]
+		pathsMap := group.Paths.(map[string]interface{})
+		if _, exists := pathsMap["project-a"]; exists {
+			t.Error("Project should not exist after removal")
+		}
+
+		// Check priority list updated
+		if len(group.Priority) != 1 || group.Priority[0] != "project-b" {
+			t.Error("Priority list should be updated")
+		}
+	})
+
+	t.Run("error on non-existent project", func(t *testing.T) {
+		if err := cfg.RemoveProject("test-group", "non-existent"); err == nil {
+			t.Error("Should error when removing non-existent project")
+		}
+	})
+}
+
+// TestSetPriority tests the SetPriority method
+func TestSetPriority(t *testing.T) {
+	cfg := &Config{
+		Groups: map[string]*Group{
+			"test-group": {
+				Paths: map[string]interface{}{
+					"project-a": "/path/to/a/.claude",
+					"project-b": "/path/to/b/.claude",
+					"project-c": "/path/to/c/.claude",
+				},
+			},
+		},
+	}
+
+	t.Run("set priority order", func(t *testing.T) {
+		newPriority := []string{"project-c", "project-a", "project-b"}
+		if err := cfg.SetPriority("test-group", newPriority); err != nil {
+			t.Errorf("Failed to set priority: %v", err)
+		}
+
+		group := cfg.Groups["test-group"]
+		if len(group.Priority) != 3 {
+			t.Errorf("Expected 3 items in priority, got %d", len(group.Priority))
+		}
+		if group.Priority[0] != "project-c" {
+			t.Errorf("First priority should be project-c, got %s", group.Priority[0])
+		}
+	})
+
+	t.Run("error on non-existent alias", func(t *testing.T) {
+		if err := cfg.SetPriority("test-group", []string{"non-existent"}); err == nil {
+			t.Error("Should error when alias doesn't exist")
+		}
+	})
+}
+
 // TestYAMLRoundTrip tests YAML marshaling and unmarshaling
 func TestYAMLRoundTrip(t *testing.T) {
 	t.Run("round trip with map paths", func(t *testing.T) {
