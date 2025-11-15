@@ -1,12 +1,14 @@
 package utils
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // CopyFile copies a file from src to dst
@@ -232,4 +234,18 @@ func expandPath(path string) string {
 	}
 
 	return filepath.Join(homeDir, path[1:])
+}
+
+// Confirm prompts the user for yes/no confirmation
+func Confirm(message string) bool {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("%s (y/n): ", message)
+
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+
+	response = strings.ToLower(strings.TrimSpace(response))
+	return response == "y" || response == "yes"
 }
