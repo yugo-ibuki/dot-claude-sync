@@ -148,3 +148,141 @@ func (g *Group) GetProjectPaths() ([]ProjectPath, error) {
 
 	return projects, nil
 }
+
+// Save saves the configuration to the specified path or default location
+func (c *Config) Save(configPath string) error {
+	path, err := getConfigPathForSave(configPath)
+	if err != nil {
+		return err
+	}
+
+	data, err := yaml.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
+}
+
+// getConfigPathForSave returns the configuration file path for saving
+func getConfigPathForSave(configPath string) (string, error) {
+	// If explicit path is provided, use it
+	if configPath != "" {
+		return configPath, nil
+	}
+
+	// Use fixed global config location
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	return filepath.Join(homeDir, ".config", "claude-sync", "config.yaml"), nil
+}
+
+// AddGroup adds a new group to the configuration
+func (c *Config) AddGroup(name string) error {
+	if c.Groups == nil {
+		c.Groups = make(map[string]*Group)
+	}
+
+	if _, exists := c.Groups[name]; exists {
+		return fmt.Errorf("group '%s' already exists", name)
+	}
+
+	c.Groups[name] = &Group{
+		Paths: make(map[string]interface{}),
+	}
+
+	return nil
+}
+
+// RemoveGroup removes a group from the configuration
+func (c *Config) RemoveGroup(name string) error {
+	if _, exists := c.Groups[name]; !exists {
+		return fmt.Errorf("group '%s' not found", name)
+	}
+
+	delete(c.Groups, name)
+	return nil
+}
+
+// AddProject adds a project to a group
+func (c *Config) AddProject(groupName, alias, path string) error {
+	group, err := c.GetGroup(groupName)
+	if err != nil {
+		return err
+	}
+
+	// Ensure paths is a map
+	pathsMap, ok := group.Paths.(map[string]interface{})
+	if !ok {
+		// Convert to map format if it's a list
+		pathsMap = make(map[string]interface{})
+		group.Paths = pathsMap
+	}
+
+	// Check if alias already exists
+	if _, exists := pathsMap[alias]; exists {
+		return fmt.Errorf("project alias '%s' already exists in group '%s'", alias, groupName)
+	}
+
+	pathsMap[alias] = path
+	return nil
+}
+
+// RemoveProject removes a project from a group
+func (c *Config) RemoveProject(groupName, alias string) error {
+	group, err := c.GetGroup(groupName)
+	if err != nil {
+		return err
+	}
+
+	pathsMap, ok := group.Paths.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("group '%s' does not use map format for paths", groupName)
+	}
+
+	if _, exists := pathsMap[alias]; !exists {
+		return fmt.Errorf("project alias '%s' not found in group '%s'", alias, groupName)
+	}
+
+	delete(pathsMap, alias)
+
+	// Remove from priority list if present
+	for i, p := range group.Priority {
+		if p == alias {
+			group.Priority = append(group.Priority[:i], group.Priority[i+1:]...)
+			break
+		}
+	}
+
+	return nil
+}
+
+// SetPriority sets the priority order for a group
+func (c *Config) SetPriority(groupName string, aliases []string) error {
+	group, err := c.GetGroup(groupName)
+	if err != nil {
+		return err
+	}
+
+	// Validate that all aliases exist in the group
+	pathsMap, ok := group.Paths.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("group '%s' does not use map format for paths", groupName)
+	}
+
+	for _, alias := range aliases {
+		if _, exists := pathsMap[alias]; !exists {
+			return fmt.Errorf("project alias '%s' not found in group '%s'", alias, groupName)
+		}
+	}
+
+	group.Priority = aliases
+	return nil
+}

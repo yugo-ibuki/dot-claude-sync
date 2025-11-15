@@ -458,6 +458,19 @@ Summary: 2 files moved
 ### 最新の変更履歴
 
 **2025-11-15**
+- ✅ cmd/config.go追加（設定管理コマンド実装）
+  - config show - 設定表示
+  - config add-group - グループ追加
+  - config remove-group - グループ削除
+  - config add-project - プロジェクト追加
+  - config remove-project - プロジェクト削除
+  - config set-priority - 優先度設定
+- ✅ config パッケージに変更機能追加
+  - Save() - 設定ファイル保存
+  - AddGroup() / RemoveGroup()
+  - AddProject() / RemoveProject()
+  - SetPriority()
+- ✅ config_test.go拡張（新機能のテスト追加、88.8% coverage）
 - ✅ config/config_test.go追加（設定ファイル読み込み・優先度解決のテスト、96.4% coverage）
 - ✅ utils/file_test.go追加（ファイル操作の包括的テスト、72% coverage）
 - ✅ cmd/push_test.go追加（pushコマンドの8テストケース）
