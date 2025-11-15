@@ -172,7 +172,11 @@ func runConfigRemoveGroup(cmd *cobra.Command, args []string) error {
 		fmt.Print("Continue? [y/N]: ")
 
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			// If Scanln fails (e.g., EOF), treat as cancelled
+			fmt.Println("\nCancelled")
+			return nil
+		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Cancelled")
 			return nil
