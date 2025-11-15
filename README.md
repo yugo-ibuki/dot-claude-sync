@@ -69,6 +69,7 @@ This distributes `.claude` directory contents across all projects based on prior
 | Command | Description |
 |---------|-------------|
 | `claude-sync init` | Initialize configuration file interactively |
+| `claude-sync detect <worktree-root> --group <group>` | Auto-detect .claude directories from git worktrees |
 | `claude-sync push <group>` | Sync files across all projects in a group |
 | `claude-sync rm <group> <path>` | Delete files from all projects in a group |
 | `claude-sync mv <group> <from> <to>` | Move/rename files in all projects |
@@ -91,6 +92,34 @@ claude-sync init --force
 # Preview what will be created
 claude-sync init --dry-run
 ```
+
+### 🔍 detect - Auto-Detect Worktree Paths
+
+Automatically detects `.claude` directories from git worktrees and adds them to a group.
+
+```bash
+# Detect .claude directories in all worktrees
+claude-sync detect <worktree-root> --group <group-name>
+
+# Examples
+claude-sync detect ~/ghq/github.com/user --group go-projects
+claude-sync detect . --group current-project
+
+# Preview detection without adding
+claude-sync detect ~/projects --group web-projects --dry-run
+
+# Add without confirmation
+claude-sync detect ~/workspace --group python-services --force
+```
+
+**How it works:**
+1. Runs `git worktree list` in the specified directory
+2. Scans each worktree for `.claude` directories
+3. Adds detected paths to the specified group in your configuration
+4. If the group doesn't exist, creates it automatically
+
+**Use case:**
+Perfect for projects using git worktrees where you have multiple branches checked out simultaneously. Instead of manually adding each worktree path, `detect` automatically finds all `.claude` directories.
 
 ### 📤 push - Synchronize Files
 
@@ -314,7 +343,24 @@ claude-sync push client-projects --config ~/.config/claude-sync/custom-config.ya
 
 ## Use Cases
 
-### Case 1: Distribute New Prompt Across Related Projects
+### Case 1: Quick Setup with Git Worktrees
+
+If you're using git worktrees, you can quickly set up a group by auto-detecting all `.claude` directories:
+
+```bash
+# Detect and add all worktree .claude directories
+claude-sync detect ~/projects/my-app --group my-app-features
+
+# Verify detected paths
+claude-sync list my-app-features
+
+# Start syncing
+claude-sync push my-app-features
+```
+
+This is much faster than manually adding each worktree path to your configuration.
+
+### Case 2: Distribute New Prompt Across Related Projects
 
 ```bash
 # Create new prompt in your main project
@@ -325,7 +371,7 @@ vim new-feature.md
 claude-sync push web-projects
 ```
 
-### Case 2: Delete Old Prompts from All Projects
+### Case 3: Delete Old Prompts from All Projects
 
 ```bash
 # Verify before deletion
@@ -335,14 +381,14 @@ claude-sync rm python-services prompts/deprecated/ --dry-run
 claude-sync rm python-services prompts/deprecated/
 ```
 
-### Case 3: Standardize File Names Across Workspace
+### Case 4: Standardize File Names Across Workspace
 
 ```bash
 # Bulk rename across all projects in the group
 claude-sync mv web-projects old-name.md new-name.md
 ```
 
-### Case 4: Distribute Configuration from Master Project
+### Case 5: Distribute Configuration from Master Project
 
 ```yaml
 # Set a shared project as master for consistent configuration
@@ -361,7 +407,7 @@ web-projects:
 claude-sync push web-projects
 ```
 
-### Case 5: Sync Client Project Templates
+### Case 6: Sync Client Project Templates
 
 ```bash
 # Set up configuration for multiple client projects
