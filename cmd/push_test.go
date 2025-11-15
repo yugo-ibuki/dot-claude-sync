@@ -181,8 +181,8 @@ func TestPushWorkflow(t *testing.T) {
 			{Alias: "project3", Path: project3, Priority: 3},
 		}
 
-		// Sync files
-		results, err := syncer.SyncFiles(resolved, projects, false, true)
+		// Sync files (force=true to skip confirmation in tests)
+		results, err := syncer.SyncFiles(resolved, projects, false, true, true)
 		if err != nil {
 			t.Fatalf("SyncFiles failed: %v", err)
 		}
@@ -255,7 +255,8 @@ func TestPushWorkflow(t *testing.T) {
 			{Alias: "project2", Path: project2, Priority: 2},
 		}
 
-		_, err := syncer.SyncFiles(resolved, projects, false, false)
+		// force=true to skip confirmation prompt in tests
+		_, err := syncer.SyncFiles(resolved, projects, false, false, true)
 		if err != nil {
 			t.Fatalf("SyncFiles failed: %v", err)
 		}
@@ -296,7 +297,7 @@ func TestPushWorkflow(t *testing.T) {
 		}
 
 		// Run in dry-run mode
-		_, err := syncer.SyncFiles(resolved, projects, true, false)
+		_, err := syncer.SyncFiles(resolved, projects, true, false, false)
 		if err != nil {
 			t.Fatalf("SyncFiles in dry-run mode failed: %v", err)
 		}
@@ -356,7 +357,8 @@ func TestPushWorkflow(t *testing.T) {
 			},
 		}
 
-		_, err = syncer.SyncFiles(resolved, projects, false, false)
+		// force=true to skip confirmation prompt in tests
+		_, err = syncer.SyncFiles(resolved, projects, false, false, true)
 		if err != nil {
 			t.Fatalf("SyncFiles failed: %v", err)
 		}
