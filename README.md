@@ -7,6 +7,16 @@
 A CLI tool to synchronize `.claude` directories across multiple independent projects in your workspace.
 Manage files in groups and perform bulk operations like add, overwrite, delete, and move.
 
+## Concept
+
+### Why claude-sync?
+
+When working with Claude Code, it's common and efficient to record progress within the `.claude` directory as long-term context or as spec documentation for future reference. Storing these documents in `.claude` is ideal because they're typically git-ignored (preventing repository pollution) while remaining accessible to Claude.
+
+However, modern CLI Agent workflows increasingly rely on **git worktrees** to manage multiple development branches simultaneously. This creates a challenge: `.claude` documents aren't tracked by git, making it tedious to share and synchronize them across worktrees. Additionally, useful commands and skills created in one worktree often need to be available in others.
+
+**claude-sync solves this problem** by providing a simple tool to share and synchronize `.claude` directory contents across worktrees and independent projects within your workspace.
+
 ## Installation
 
 ```bash
