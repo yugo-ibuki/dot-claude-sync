@@ -20,10 +20,60 @@ type SyncResult struct {
 	SkipReason  string  // Reason for skipping
 }
 
+// OverwriteInfo holds information about files that will be overwritten
+type OverwriteInfo struct {
+	Project string // Project alias
+	RelPath string // Relative path of the file
+}
+
 // SyncFiles distributes resolved files to all projects
-func SyncFiles(resolved []ResolvedFile, projects []config.ProjectPath, dryRun bool, verbose bool) ([]SyncResult, error) {
+func SyncFiles(resolved []ResolvedFile, projects []config.ProjectPath, dryRun bool, verbose bool, force bool) ([]SyncResult, error) {
 	if len(resolved) == 0 {
 		return nil, fmt.Errorf("no files to sync")
+	}
+
+	// Collect files that would be overwritten
+	var overwriteInfo []OverwriteInfo
+	for _, project := range projects {
+		claudeDir := expandPath(project.Path)
+		if !utils.FileExists(claudeDir) {
+			continue
+		}
+
+		for _, file := range resolved {
+			dstPath := filepath.Join(claudeDir, file.RelPath)
+			if utils.FileExists(dstPath) {
+				overwriteInfo = append(overwriteInfo, OverwriteInfo{
+					Project: project.Alias,
+					RelPath: file.RelPath,
+				})
+			}
+		}
+	}
+
+	// Show warning and ask for confirmation if overwrites would occur
+	if len(overwriteInfo) > 0 && !dryRun && !force {
+		fmt.Println("\n⚠️  Warning: The following files will be overwritten:")
+		fmt.Println()
+
+		// Group by project
+		byProject := make(map[string][]string)
+		for _, info := range overwriteInfo {
+			byProject[info.Project] = append(byProject[info.Project], info.RelPath)
+		}
+
+		for project, files := range byProject {
+			fmt.Printf("  %s:\n", project)
+			for _, file := range files {
+				fmt.Printf("    - %s\n", file)
+			}
+		}
+
+		fmt.Println()
+		if !utils.Confirm("Do you want to continue?") {
+			return nil, fmt.Errorf("sync cancelled by user")
+		}
+		fmt.Println()
 	}
 
 	var results []SyncResult
