@@ -272,7 +272,7 @@ func TestRunDetect(t *testing.T) {
 				groupName = "test-group"
 				force = true
 			},
-			setupConfig: func() {},
+			setupConfig:  func() {},
 			wantErr:      true,
 			checkResults: func(t *testing.T) {},
 		},
