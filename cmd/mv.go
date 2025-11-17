@@ -38,6 +38,14 @@ func runMv(cmd *cobra.Command, args []string) error {
 	fromPath := args[1]
 	toPath := args[2]
 
+	// Prevent moving bk directory (backup directory)
+	if fromPath == "bk" || filepath.Clean(fromPath) == "bk" {
+		return fmt.Errorf("cannot move 'bk' directory: it is reserved for backups")
+	}
+	if toPath == "bk" || filepath.Clean(toPath) == "bk" {
+		return fmt.Errorf("cannot move to 'bk' directory: it is reserved for backups")
+	}
+
 	if verbose {
 		fmt.Printf("Loading configuration...\n")
 	}

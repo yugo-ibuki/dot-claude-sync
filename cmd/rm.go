@@ -33,6 +33,11 @@ func runRm(cmd *cobra.Command, args []string) error {
 	groupName := args[0]
 	targetPath := args[1]
 
+	// Prevent deletion of bk directory (backup directory)
+	if targetPath == "bk" || filepath.Clean(targetPath) == "bk" {
+		return fmt.Errorf("cannot delete 'bk' directory: it is reserved for backups")
+	}
+
 	if verbose {
 		fmt.Printf("Loading configuration...\n")
 	}
