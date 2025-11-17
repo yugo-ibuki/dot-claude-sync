@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yugo-ibuki/dot-claude-sync/config"
 	"gopkg.in/yaml.v3"
+
+	"github.com/yugo-ibuki/dot-claude-sync/config"
 )
 
 // setupGitRepo creates a git repository with worktrees for testing
