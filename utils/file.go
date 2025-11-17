@@ -249,3 +249,49 @@ func Confirm(message string) bool {
 	response = strings.ToLower(strings.TrimSpace(response))
 	return response == "y" || response == "yes"
 }
+
+// ValidateAndNormalizePath validates and normalizes a path relative to .claude directory.
+// It expects the path to start with ".claude/" and removes that prefix.
+// Returns the normalized path without the ".claude/" prefix and an error if validation fails.
+func ValidateAndNormalizePath(path string) (string, error) {
+	// Trim whitespace
+	path = strings.TrimSpace(path)
+
+	if path == "" {
+		return "", fmt.Errorf("path cannot be empty")
+	}
+
+	// Check for parent directory traversal before normalization
+	if strings.Contains(path, "..") {
+		return "", fmt.Errorf("path cannot contain '..' (parent directory references)")
+	}
+
+	// Check if path starts with .claude or .claude/
+	if !strings.HasPrefix(path, ".claude") {
+		return "", fmt.Errorf("path must start with '.claude/' (e.g., '.claude/commands/foo.md')")
+	}
+
+	// Remove .claude prefix
+	// Handle both ".claude" and ".claude/"
+	if path == ".claude" {
+		return "", fmt.Errorf("path cannot be just '.claude', must specify a file or directory inside .claude")
+	}
+
+	// Remove ".claude/" prefix
+	normalized := strings.TrimPrefix(path, ".claude/")
+	normalized = strings.TrimPrefix(normalized, ".claude\\") // Handle Windows path separator
+
+	if normalized == "" || normalized == path {
+		return "", fmt.Errorf("path must specify a file or directory inside .claude (e.g., '.claude/commands/foo.md')")
+	}
+
+	// Normalize path separators
+	normalized = filepath.Clean(normalized)
+
+	// Additional validation: ensure no absolute path
+	if filepath.IsAbs(normalized) {
+		return "", fmt.Errorf("path cannot be absolute")
+	}
+
+	return normalized, nil
+}
