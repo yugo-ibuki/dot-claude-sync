@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -66,10 +65,9 @@ func runBackup(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Creating backups for group '%s'...\n", groupName)
 
 	var results []BackupResult
-	timestamp := time.Now().Format("20060102-150405")
 
 	for _, project := range projects {
-		result := backupProject(project, timestamp, dryRun, verbose)
+		result := backupProject(project, dryRun, verbose)
 		results = append(results, result)
 	}
 
@@ -113,7 +111,7 @@ func runBackup(cmd *cobra.Command, args []string) error {
 }
 
 // backupProject creates a backup of a single project's .claude directory
-func backupProject(project config.ProjectPath, timestamp string, dryRun, verbose bool) BackupResult {
+func backupProject(project config.ProjectPath, dryRun, verbose bool) BackupResult {
 	result := BackupResult{
 		Project: project.Alias,
 	}
