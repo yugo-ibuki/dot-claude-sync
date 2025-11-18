@@ -1,6 +1,7 @@
 # Binaries
 claude-sync
 dot-claude-sync
+/dcs
 *.exe
 *.exe~
 *.dll
