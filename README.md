@@ -9,15 +9,22 @@ git worktreeを使った開発では、`.claude`ディレクトリの内容（�
 ## インストール
 
 ```bash
+# メインコマンドのインストール
 go install github.com/yugo-ibuki/dot-claude-sync@latest
+
+# 短縮エイリアスのインストール（オプション）
+go install github.com/yugo-ibuki/dot-claude-sync/cmd/dcs@latest
 ```
+
+**コマンドエイリアス**: `dot-claude-sync`と`dcs`は同じ機能を提供します。
 
 または、ソースからビルド：
 
 ```bash
 git clone https://github.com/yugo-ibuki/dot-claude-sync.git
 cd dot-claude-sync
-go build
+go build                    # dot-claude-syncをビルド
+go build -o dcs ./cmd/dcs   # dcsエイリアスをビルド
 ```
 
 ## クイックスタート
@@ -26,6 +33,8 @@ go build
 
 ```bash
 dot-claude-sync init
+# または短縮版
+dcs init
 ```
 
 または手動で作成：
@@ -52,6 +61,8 @@ groups:
 
 ```bash
 dot-claude-sync push web-projects
+# または
+dcs push web-projects
 ```
 
 ## コマンド
@@ -65,6 +76,8 @@ dot-claude-sync push web-projects
 | `mv <group> <from> <to>` | グループ内のすべてのプロジェクトでファイルを移動/リネーム |
 | `list [group]` | グループ一覧、または特定グループの詳細を表示 |
 | `config <subcommand>` | 設定の管理（グループやプロジェクトの追加/削除など） |
+
+**注**: すべてのコマンドで`dot-claude-sync`の代わりに`dcs`が使えます（例: `dcs init`, `dcs push <group>`）
 
 ### グローバルオプション
 
@@ -81,13 +94,13 @@ dot-claude-sync push web-projects
 
 ```bash
 # worktreeから.claudeディレクトリを自動検出してグループに追加
-dot-claude-sync detect ~/projects/my-app --group my-app
+dcs detect ~/projects/my-app --group my-app
 
 # 確認
-dot-claude-sync list my-app
+dcs list my-app
 
 # 同期
-dot-claude-sync push my-app
+dcs push my-app
 ```
 
 ### ファイルの配布
@@ -98,34 +111,34 @@ cd ~/projects/main/.claude/prompts
 vim new-feature.md
 
 # グループ全体に配布
-dot-claude-sync push web-projects
+dcs push web-projects
 ```
 
 ### ファイルの削除
 
 ```bash
 # 削除前に確認
-dot-claude-sync rm web-projects prompts/old.md --dry-run
+dcs rm web-projects prompts/old.md --dry-run
 
 # 実行
-dot-claude-sync rm web-projects prompts/old.md
+dcs rm web-projects prompts/old.md
 ```
 
 ### 設定の管理
 
 ```bash
 # 新しいグループを作成
-dot-claude-sync config add-group mobile-projects
+dcs config add-group mobile-projects
 
 # プロジェクトを追加
-dot-claude-sync config add-project mobile-projects ios ~/projects/ios-app/.claude
-dot-claude-sync config add-project mobile-projects android ~/projects/android-app/.claude
+dcs config add-project mobile-projects ios ~/projects/ios-app/.claude
+dcs config add-project mobile-projects android ~/projects/android-app/.claude
 
 # 優先順位を設定
-dot-claude-sync config set-priority mobile-projects ios android
+dcs config set-priority mobile-projects ios android
 
 # 確認
-dot-claude-sync config show mobile-projects
+dcs config show mobile-projects
 ```
 
 ## 優先順位のルール
@@ -152,6 +165,7 @@ dot-claude-sync config show mobile-projects
 ```bash
 # バイナリの削除
 rm $(which dot-claude-sync)
+rm $(which dcs)  # dcsをインストールしている場合
 
 # 設定ディレクトリの削除
 rm -rf ~/.config/dot-claude-sync

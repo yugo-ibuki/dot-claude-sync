@@ -109,6 +109,59 @@ func CopyDir(src, dst string) error {
 	return nil
 }
 
+// CopyDirExclude recursively copies a directory from src to dst, excluding specified directories
+func CopyDirExclude(src, dst string, excludeDirs []string) error {
+	src = expandPath(src)
+	dst = expandPath(dst)
+
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return fmt.Errorf("failed to stat source directory: %w", err)
+	}
+
+	if !srcInfo.IsDir() {
+		return fmt.Errorf("source is not a directory: %s", src)
+	}
+
+	// Create destination directory
+	if err := os.MkdirAll(dst, srcInfo.Mode()); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return fmt.Errorf("failed to read directory: %w", err)
+	}
+
+	// Create a map for quick lookup of excluded directories
+	excludeMap := make(map[string]bool)
+	for _, dir := range excludeDirs {
+		excludeMap[dir] = true
+	}
+
+	for _, entry := range entries {
+		// Skip excluded directories
+		if entry.IsDir() && excludeMap[entry.Name()] {
+			continue
+		}
+
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			if err := CopyDirExclude(srcPath, dstPath, excludeDirs); err != nil {
+				return err
+			}
+		} else {
+			if err := CopyFile(srcPath, dstPath); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // RemoveFile removes a file or directory (recursively if directory)
 func RemoveFile(path string) error {
 	path = expandPath(path)
