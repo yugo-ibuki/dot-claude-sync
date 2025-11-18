@@ -64,7 +64,7 @@ func TestRunRm(t *testing.T) {
 	}{
 		{
 			name: "delete existing file from multiple projects",
-			args: []string{"test-group", "test.md"},
+			args: []string{"test-group", ".claude/test.md"},
 			setupFiles: func() {
 				os.WriteFile(testFile1, []byte("test"), 0644)
 				os.WriteFile(testFile2, []byte("test"), 0644)
@@ -85,7 +85,7 @@ func TestRunRm(t *testing.T) {
 		},
 		{
 			name: "delete directory recursively",
-			args: []string{"test-group", "testdir"},
+			args: []string{"test-group", ".claude/testdir"},
 			setupFiles: func() {
 				os.MkdirAll(testDir, 0755)
 				os.WriteFile(filepath.Join(testDir, "nested.md"), []byte("nested"), 0644)
@@ -103,7 +103,7 @@ func TestRunRm(t *testing.T) {
 		},
 		{
 			name: "dry-run mode does not delete",
-			args: []string{"test-group", "test.md"},
+			args: []string{"test-group", ".claude/test.md"},
 			setupFiles: func() {
 				os.WriteFile(testFile1, []byte("test"), 0644)
 				os.WriteFile(testFile2, []byte("test"), 0644)
@@ -124,7 +124,7 @@ func TestRunRm(t *testing.T) {
 		},
 		{
 			name: "delete non-existent file succeeds with skip",
-			args: []string{"test-group", "nonexistent.md"},
+			args: []string{"test-group", ".claude/nonexistent.md"},
 			setupFiles: func() {
 				// No files to create
 			},
@@ -140,7 +140,7 @@ func TestRunRm(t *testing.T) {
 		},
 		{
 			name: "invalid group name returns error",
-			args: []string{"nonexistent-group", "test.md"},
+			args: []string{"nonexistent-group", ".claude/test.md"},
 			setupFiles: func() {
 				// No setup needed
 			},
@@ -314,7 +314,7 @@ func TestRmCommandFlags(t *testing.T) {
 			cfgFile = configPath
 
 			// Run command
-			err := runRm(nil, []string{"test", "test.md"})
+			err := runRm(nil, []string{"test", ".claude/test.md"})
 			if err != nil {
 				t.Errorf("runRm() unexpected error: %v", err)
 			}
