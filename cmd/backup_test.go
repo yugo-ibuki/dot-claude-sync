@@ -118,17 +118,10 @@ func TestRunBackup(t *testing.T) {
 			},
 			wantErr: false,
 			checkAfter: func(t *testing.T) {
-				// In dry-run, no backup should be created
-				bkDir1 := filepath.Join(project1, "bk")
-
-				// If bk exists, it should be empty or not have new entries
-				if utils.FileExists(bkDir1) {
-					entries, err := os.ReadDir(bkDir1)
-					if err == nil && len(entries) > 0 {
-						// Check if the entry is from a previous test
-						// In a fresh dry-run, no new entries should be created
-					}
-				}
+				// In dry-run, backup directory might exist from cleanup
+				// but should not contain any new entries from this run
+				// Since we clean up bk directories before each test,
+				// this test verifies the command completes successfully in dry-run mode
 			},
 		},
 		{
