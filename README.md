@@ -20,15 +20,22 @@ However, modern CLI Agent workflows increasingly rely on **git worktrees** to ma
 ## Installation
 
 ```bash
+# Install the main binary
 go install github.com/yugo-ibuki/dot-claude-sync@latest
+
+# Optionally install the shorter alias
+go install github.com/yugo-ibuki/dot-claude-sync/cmd/dcs@latest
 ```
+
+**Command Aliases**: Both `dot-claude-sync` and `dcs` work identically.
 
 Or build from source:
 
 ```bash
 git clone https://github.com/yugo-ibuki/dot-claude-sync.git
 cd dot-claude-sync
-go build
+go build                    # builds dot-claude-sync
+go build -o dcs ./cmd/dcs   # builds dcs alias
 ```
 
 ## Quick Start
@@ -39,6 +46,8 @@ Run the init command to create your configuration file:
 
 ```bash
 dot-claude-sync init
+# or using the short alias
+dcs init
 ```
 
 This will interactively guide you through creating `~/.config/dot-claude-sync/config.yaml`.
@@ -70,6 +79,8 @@ groups:
 ```bash
 # Sync all projects in the web-projects group
 dot-claude-sync push web-projects
+# or
+dcs push web-projects
 ```
 
 This distributes `.claude` directory contents across all projects based on priority settings.
@@ -85,6 +96,8 @@ This distributes `.claude` directory contents across all projects based on prior
 | `dot-claude-sync mv <group> <from> <to>` | Move/rename files in all projects |
 | `dot-claude-sync list [group]` | Show groups or group details |
 | `dot-claude-sync config <subcommand>` | Manage configuration (add/remove groups and projects) |
+
+**Note**: All commands can use `dcs` instead of `dot-claude-sync` (e.g., `dcs init`, `dcs push <group>`).
 
 ## Features
 

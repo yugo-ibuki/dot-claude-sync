@@ -37,9 +37,17 @@ claude-sync is a CLI tool that synchronizes `.claude` directories across multipl
 
 **Option 1: Install via `go install` (Recommended)**
 ```bash
+# Install the main binary (dot-claude-sync)
 go install github.com/yugo-ibuki/dot-claude-sync@latest
+
+# Optionally install the shorter alias (dcs)
+go install github.com/yugo-ibuki/dot-claude-sync/cmd/dcs@latest
 ```
 This installs the binary to `$GOPATH/bin` (usually `~/go/bin`).
+
+**Command Aliases**:
+- `dot-claude-sync`: Full command name
+- `dcs`: Short alias (both work identically)
 
 **Option 2: Build from source**
 ```bash
@@ -55,14 +63,19 @@ Download from GitHub Releases (if available).
 ### For Development
 
 ```bash
-# Build the binary
+# Build the main binary
 go build -o dot-claude-sync
 
-# Install locally to $GOPATH/bin
+# Build the short alias
+go build -o dcs ./cmd/dcs
+
+# Install both to $GOPATH/bin
 go install
+go install ./cmd/dcs
 
 # Run directly without building
 go run main.go <command>
+go run ./cmd/dcs/main.go <command>  # or using dcs entry point
 
 # Run with specific command
 go run main.go init
@@ -74,7 +87,7 @@ go mod tidy
 go mod verify
 ```
 
-**Important**: Build artifacts (`dot-claude-sync`, `claude-sync`) are excluded from git via `.gitignore`. Do not commit binaries to the repository.
+**Important**: Build artifacts (`dot-claude-sync`, `dcs`, `claude-sync`) are excluded from git via `.gitignore`. Do not commit binaries to the repository.
 
 ## Architecture
 
@@ -82,7 +95,8 @@ go mod verify
 
 The project uses `github.com/spf13/cobra` for CLI commands:
 
-- **main.go**: Entry point that calls `cmd.Execute()`
+- **main.go**: Entry point for `dot-claude-sync` that calls `cmd.Execute()`
+- **cmd/dcs/main.go**: Entry point for `dcs` alias (same functionality as main.go)
 - **cmd/root.go**: Root command with global flags (`--config`, `--dry-run`, `--verbose`, `--force`)
 - **cmd/init.go**: Interactive configuration file creation
 - **cmd/push.go**: File synchronization across projects (TODO: implementation pending)
