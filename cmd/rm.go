@@ -39,6 +39,11 @@ func runRm(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid path: %w", err)
 	}
 
+	// Prevent deletion of bk directory (backup directory)
+	if targetPath == "bk" || filepath.Clean(targetPath) == "bk" {
+		return fmt.Errorf("cannot delete 'bk' directory: it is reserved for backups")
+	}
+
 	if verbose {
 		fmt.Printf("Loading configuration...\n")
 		fmt.Printf("Normalized path: %s\n", targetPath)

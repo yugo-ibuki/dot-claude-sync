@@ -68,6 +68,11 @@ func collectFromProject(project config.ProjectPath) ([]FileInfo, error) {
 			return nil
 		}
 
+		// Skip bk directory (backup directory)
+		if info.IsDir() && info.Name() == "bk" {
+			return filepath.SkipDir
+		}
+
 		// Skip directories
 		if info.IsDir() {
 			return nil
