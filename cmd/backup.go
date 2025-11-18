@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -15,7 +16,8 @@ var backupCmd = &cobra.Command{
 	Use:   "backup <group>",
 	Short: "Backup .claude files to bk directory in all projects in a group",
 	Long: `Create backups of .claude directories for all projects in the specified group.
-Backups are stored in a 'bk' subdirectory within each project's .claude directory.`,
+Backups are stored in a timestamped subdirectory within each project's .claude/bk directory.
+Example: .claude/bk/20250117-143025/`,
 	Args: cobra.ExactArgs(1),
 	RunE: runBackup,
 }
@@ -65,9 +67,10 @@ func runBackup(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Creating backups for group '%s'...\n", groupName)
 
 	var results []BackupResult
+	timestamp := time.Now().Format("20060102-150405")
 
 	for _, project := range projects {
-		result := backupProject(project, dryRun, verbose)
+		result := backupProject(project, timestamp, dryRun, verbose)
 		results = append(results, result)
 	}
 
@@ -111,7 +114,7 @@ func runBackup(cmd *cobra.Command, args []string) error {
 }
 
 // backupProject creates a backup of a single project's .claude directory
-func backupProject(project config.ProjectPath, dryRun, verbose bool) BackupResult {
+func backupProject(project config.ProjectPath, timestamp string, dryRun, verbose bool) BackupResult {
 	result := BackupResult{
 		Project: project.Alias,
 	}
@@ -131,8 +134,8 @@ func backupProject(project config.ProjectPath, dryRun, verbose bool) BackupResul
 		return result
 	}
 
-	// Create backup directory path
-	backupDir := filepath.Join(claudeDir, "bk")
+	// Create backup directory path with timestamp
+	backupDir := filepath.Join(claudeDir, "bk", timestamp)
 
 	if dryRun {
 		if verbose {
