@@ -1,50 +1,50 @@
 # dot-claude-sync
 
-`.claude`ディレクトリを複数のプロジェクト間で同期するCLIツール
+A CLI tool to synchronize `.claude` directories across multiple independent projects in your workspace.
 
-## 概要
+## Overview
 
-git worktreeを使った開発では、`.claude`ディレクトリの内容（プロンプト、コマンド、スキルなど）を各worktree間で共有するのが面倒です。`dot-claude-sync`はこの問題を解決し、複数のプロジェクト間で`.claude`の内容を簡単に同期できます。
+When working with Claude Code using git worktrees, it's tedious to share `.claude` directory contents (prompts, commands, skills) across worktrees. `dot-claude-sync` solves this problem by providing simple synchronization across multiple projects.
 
-## インストール
+## Installation
 
 ```bash
-# メインコマンドのインストール
+# Install the main binary
 go install github.com/yugo-ibuki/dot-claude-sync@latest
 
-# 短縮エイリアスのインストール（オプション）
+# Optionally install the shorter alias
 go install github.com/yugo-ibuki/dot-claude-sync/cmd/dcs@latest
 ```
 
-**コマンドエイリアス**: `dot-claude-sync`と`dcs`は同じ機能を提供します。
+**Command Aliases**: Both `dot-claude-sync` and `dcs` work identically.
 
-または、ソースからビルド：
+Or build from source:
 
 ```bash
 git clone https://github.com/yugo-ibuki/dot-claude-sync.git
 cd dot-claude-sync
-go build                    # dot-claude-syncをビルド
-go build -o dcs ./cmd/dcs   # dcsエイリアスをビルド
+go build                    # builds dot-claude-sync
+go build -o dcs ./cmd/dcs   # builds dcs alias
 ```
 
-## クイックスタート
+## Quick Start
 
-### 1. 設定ファイルの作成
+### 1. Initialize Configuration
 
 ```bash
 dot-claude-sync init
-# または短縮版
+# or using the short alias
 dcs init
 ```
 
-または手動で作成：
+Or create manually:
 
 ```bash
 mkdir -p ~/.config/dot-claude-sync
 vim ~/.config/dot-claude-sync/config.yaml
 ```
 
-### 2. 設定例
+### 2. Configuration Example
 
 ```yaml
 groups:
@@ -54,123 +54,123 @@ groups:
       feature-a: ~/projects/feature-a/.claude
       feature-b: ~/projects/feature-b/.claude
     priority:
-      - main  # 最優先（重複時はこのファイルを採用）
+      - main  # highest priority (used on conflicts)
 ```
 
-### 3. 同期実行
+### 3. Sync Files
 
 ```bash
 dot-claude-sync push web-projects
-# または
+# or
 dcs push web-projects
 ```
 
-## コマンド
+## Commands
 
-| コマンド | 説明 |
-|---------|------|
-| `init` | 設定ファイルを対話的に作成 |
-| `detect <dir> --group <name>` | git worktreeから`.claude`を自動検出してグループに追加 |
-| `push <group>` | グループ内のすべてのプロジェクトでファイルを同期 |
-| `rm <group> <path>` | グループ内のすべてのプロジェクトからファイルを削除 |
-| `mv <group> <from> <to>` | グループ内のすべてのプロジェクトでファイルを移動/リネーム |
-| `list [group]` | グループ一覧、または特定グループの詳細を表示 |
-| `config <subcommand>` | 設定の管理（グループやプロジェクトの追加/削除など） |
+| Command | Description |
+|---------|-------------|
+| `init` | Initialize configuration file interactively |
+| `detect <dir> --group <name>` | Auto-detect .claude directories from git worktrees |
+| `push <group>` | Sync files across all projects in a group |
+| `rm <group> <path>` | Delete files from all projects in a group |
+| `mv <group> <from> <to>` | Move/rename files in all projects |
+| `list [group]` | Show groups or group details |
+| `config <subcommand>` | Manage configuration (add/remove groups and projects) |
 
-**注**: すべてのコマンドで`dot-claude-sync`の代わりに`dcs`が使えます（例: `dcs init`, `dcs push <group>`）
+**Note**: All commands can use `dcs` instead of `dot-claude-sync` (e.g., `dcs init`, `dcs push <group>`).
 
-### グローバルオプション
+### Global Options
 
 ```bash
---config <path>   # 設定ファイルのパスを指定
---dry-run         # 実行のシミュレーション（変更なし）
---verbose         # 詳細なログを出力
---force           # 確認プロンプトをスキップ
+--config <path>   # Specify configuration file path
+--dry-run         # Simulate execution without changes
+--verbose         # Output detailed logs
+--force           # Skip confirmation prompts
 ```
 
-## よくある使い方
+## Common Use Cases
 
-### git worktreeの自動検出
+### Auto-Detect Git Worktrees
 
 ```bash
-# worktreeから.claudeディレクトリを自動検出してグループに追加
+# Auto-detect .claude directories from worktrees and add to group
 dcs detect ~/projects/my-app --group my-app
 
-# 確認
+# Verify detected paths
 dcs list my-app
 
-# 同期
+# Start syncing
 dcs push my-app
 ```
 
-### ファイルの配布
+### Distribute Files
 
 ```bash
-# メインプロジェクトで新しいプロンプトを作成
+# Create new prompt in main project
 cd ~/projects/main/.claude/prompts
 vim new-feature.md
 
-# グループ全体に配布
+# Distribute to all projects in group
 dcs push web-projects
 ```
 
-### ファイルの削除
+### Delete Files
 
 ```bash
-# 削除前に確認
+# Verify before deletion
 dcs rm web-projects prompts/old.md --dry-run
 
-# 実行
+# Execute deletion
 dcs rm web-projects prompts/old.md
 ```
 
-### 設定の管理
+### Manage Configuration
 
 ```bash
-# 新しいグループを作成
+# Create new group
 dcs config add-group mobile-projects
 
-# プロジェクトを追加
+# Add projects
 dcs config add-project mobile-projects ios ~/projects/ios-app/.claude
 dcs config add-project mobile-projects android ~/projects/android-app/.claude
 
-# 優先順位を設定
+# Set priority
 dcs config set-priority mobile-projects ios android
 
-# 確認
+# Verify
 dcs config show mobile-projects
 ```
 
-## 優先順位のルール
+## Priority Rules
 
-- `priority`リストの順序で優先度が決まる
-- リストに含まれないプロジェクトは最低優先度
-- `priority`が指定されていない場合は、`paths`の順序が優先度になる
-- 重複するファイル名は、高優先度のプロジェクトのファイルで上書きされる
+- Priority is determined by order in `priority` list
+- Projects not in the list have lowest priority
+- If `priority` is not specified, `paths` order becomes priority
+- Duplicate files are overwritten with content from higher priority projects
 
-## 設定ファイルの場所
+## Configuration File Location
 
-デフォルト: `~/.config/dot-claude-sync/config.yaml`
+Default: `~/.config/dot-claude-sync/config.yaml`
 
-`--config`フラグで別の設定ファイルを指定可能
+Override with `--config` flag
 
-## 注意事項
+## Important Notes
 
-- 初回実行前に`.claude`ディレクトリのバックアップを推奨
-- `rm`コマンドは取り消せないため、`--dry-run`で事前確認を推奨
-- ファイルの重複時は優先度の高いプロジェクトのファイルで上書きされる
+- Backup `.claude` directories before first execution
+- `rm` command is irreversible; use `--dry-run` for verification
+- Files are overwritten based on priority when duplicates exist
 
-## アンインストール
+## Uninstall
 
 ```bash
-# バイナリの削除
+# Remove binaries
 rm $(which dot-claude-sync)
-rm $(which dcs)  # dcsをインストールしている場合
+rm $(which dcs)  # if dcs is installed
 
-# 設定ディレクトリの削除
+# Remove configuration directory
 rm -rf ~/.config/dot-claude-sync
 ```
 
-## ライセンス
+## License
 
 MIT
