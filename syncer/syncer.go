@@ -22,8 +22,10 @@ type SyncResult struct {
 
 // OverwriteInfo holds information about files that will be overwritten
 type OverwriteInfo struct {
-	Project string // Project alias
-	RelPath string // Relative path of the file
+	DestProject   string // Destination project alias
+	SourceProject string // Source project alias (where the file is coming from)
+	RelPath       string // Relative path of the file
+	ContentDiff   bool   // Whether the content is different
 }
 
 // SyncFiles distributes resolved files to all projects
@@ -43,10 +45,30 @@ func SyncFiles(resolved []ResolvedFile, projects []config.ProjectPath, dryRun bo
 		for _, file := range resolved {
 			dstPath := filepath.Join(claudeDir, file.RelPath)
 			if utils.FileExists(dstPath) {
-				overwriteInfo = append(overwriteInfo, OverwriteInfo{
-					Project: project.Alias,
-					RelPath: file.RelPath,
-				})
+				// Only show if:
+				// 1. Destination project has lower priority (higher number) than source
+				// 2. Content is actually different
+				if project.Priority > file.Priority {
+					// Check if content is different
+					srcHash, err := utils.FileHash(file.AbsPath)
+					if err != nil {
+						continue // Skip if can't read source
+					}
+					dstHash, err := utils.FileHash(dstPath)
+					if err != nil {
+						continue // Skip if can't read destination
+					}
+
+					// Only add if content is different
+					if srcHash != dstHash {
+						overwriteInfo = append(overwriteInfo, OverwriteInfo{
+							DestProject:   project.Alias,
+							SourceProject: file.Source,
+							RelPath:       file.RelPath,
+							ContentDiff:   true,
+						})
+					}
+				}
 			}
 		}
 	}
@@ -56,16 +78,16 @@ func SyncFiles(resolved []ResolvedFile, projects []config.ProjectPath, dryRun bo
 		fmt.Println("\n⚠️  Warning: The following files will be overwritten:")
 		fmt.Println()
 
-		// Group by project
-		byProject := make(map[string][]string)
+		// Group by destination project
+		byDestProject := make(map[string][]OverwriteInfo)
 		for _, info := range overwriteInfo {
-			byProject[info.Project] = append(byProject[info.Project], info.RelPath)
+			byDestProject[info.DestProject] = append(byDestProject[info.DestProject], info)
 		}
 
-		for project, files := range byProject {
-			fmt.Printf("  %s:\n", project)
-			for _, file := range files {
-				fmt.Printf("    - %s\n", file)
+		for destProject, infos := range byDestProject {
+			fmt.Printf("  %s:\n", destProject)
+			for _, info := range infos {
+				fmt.Printf("    - %s (from %s)\n", info.RelPath, info.SourceProject)
 			}
 		}
 
