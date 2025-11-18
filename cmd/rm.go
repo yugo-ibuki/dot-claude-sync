@@ -31,7 +31,13 @@ type deleteTarget struct {
 
 func runRm(cmd *cobra.Command, args []string) error {
 	groupName := args[0]
-	targetPath := args[1]
+	rawPath := args[1]
+
+	// Validate and normalize the path
+	targetPath, err := utils.ValidateAndNormalizePath(rawPath)
+	if err != nil {
+		return fmt.Errorf("invalid path: %w", err)
+	}
 
 	// Prevent deletion of bk directory (backup directory)
 	if targetPath == "bk" || filepath.Clean(targetPath) == "bk" {
@@ -40,6 +46,7 @@ func runRm(cmd *cobra.Command, args []string) error {
 
 	if verbose {
 		fmt.Printf("Loading configuration...\n")
+		fmt.Printf("Normalized path: %s\n", targetPath)
 	}
 
 	cfg, err := config.Load(cfgFile)

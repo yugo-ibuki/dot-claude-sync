@@ -480,3 +480,110 @@ func TestFormatSize(t *testing.T) {
 		})
 	}
 }
+
+// TestValidateAndNormalizePath tests the ValidateAndNormalizePath function
+func TestValidateAndNormalizePath(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expected    string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "valid path with .claude/ prefix",
+			input:       ".claude/commands/foo.md",
+			expected:    "commands/foo.md",
+			expectError: false,
+		},
+		{
+			name:        "valid path with nested directories",
+			input:       ".claude/commands/subdir/bar.md",
+			expected:    "commands/subdir/bar.md",
+			expectError: false,
+		},
+		{
+			name:        "valid path with .claude prefix (Windows separator)",
+			input:       ".claude\\commands\\foo.md",
+			expected:    "commands\\foo.md",
+			expectError: false,
+		},
+		{
+			name:        "path without .claude prefix",
+			input:       "commands/foo.md",
+			expectError: true,
+			errorMsg:    "path must start with '.claude/'",
+		},
+		{
+			name:        "empty path",
+			input:       "",
+			expectError: true,
+			errorMsg:    "path cannot be empty",
+		},
+		{
+			name:        "just .claude",
+			input:       ".claude",
+			expectError: true,
+			errorMsg:    "path cannot be just '.claude'",
+		},
+		{
+			name:        "absolute path",
+			input:       "/absolute/path",
+			expectError: true,
+			errorMsg:    "path must start with '.claude/'",
+		},
+		{
+			name:        "parent directory traversal",
+			input:       ".claude/../../../etc/passwd",
+			expectError: true,
+			errorMsg:    "path cannot contain '..'",
+		},
+		{
+			name:        "path with whitespace",
+			input:       "  .claude/commands/foo.md  ",
+			expected:    "commands/foo.md",
+			expectError: false,
+		},
+		{
+			name:        "path with trailing slash",
+			input:       ".claude/commands/",
+			expected:    "commands",
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ValidateAndNormalizePath(tt.input)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error containing %q, got nil", tt.errorMsg)
+				} else if tt.errorMsg != "" && !contains(err.Error(), tt.errorMsg) {
+					t.Errorf("Expected error containing %q, got %q", tt.errorMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if result != tt.expected {
+					t.Errorf("ValidateAndNormalizePath(%q) = %q, expected %q", tt.input, result, tt.expected)
+				}
+			}
+		})
+	}
+}
+
+// contains checks if a string contains a substring (helper for tests)
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}

@@ -35,8 +35,19 @@ type MoveResult struct {
 
 func runMv(cmd *cobra.Command, args []string) error {
 	groupName := args[0]
-	fromPath := args[1]
-	toPath := args[2]
+	rawFromPath := args[1]
+	rawToPath := args[2]
+
+	// Validate and normalize the paths
+	fromPath, err := utils.ValidateAndNormalizePath(rawFromPath)
+	if err != nil {
+		return fmt.Errorf("invalid source path: %w", err)
+	}
+
+	toPath, err := utils.ValidateAndNormalizePath(rawToPath)
+	if err != nil {
+		return fmt.Errorf("invalid destination path: %w", err)
+	}
 
 	// Prevent moving bk directory (backup directory)
 	if fromPath == "bk" || filepath.Clean(fromPath) == "bk" {
@@ -48,6 +59,7 @@ func runMv(cmd *cobra.Command, args []string) error {
 
 	if verbose {
 		fmt.Printf("Loading configuration...\n")
+		fmt.Printf("Normalized paths: %s → %s\n", fromPath, toPath)
 	}
 
 	cfg, err := config.Load(cfgFile)

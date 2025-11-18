@@ -64,7 +64,7 @@ func TestRunMv(t *testing.T) {
 	}{
 		{
 			name: "move existing file in multiple projects",
-			args: []string{"test-group", "old.md", "new.md"},
+			args: []string{"test-group", ".claude/old.md", ".claude/new.md"},
 			setupFiles: func() {
 				os.WriteFile(testFile1, []byte("test"), 0644)
 				os.WriteFile(testFile2, []byte("test"), 0644)
@@ -94,7 +94,7 @@ func TestRunMv(t *testing.T) {
 		},
 		{
 			name: "move directory",
-			args: []string{"test-group", "olddir", "newdir"},
+			args: []string{"test-group", ".claude/olddir", ".claude/newdir"},
 			setupFiles: func() {
 				os.MkdirAll(testDir, 0755)
 				os.WriteFile(filepath.Join(testDir, "nested.md"), []byte("nested"), 0644)
@@ -121,7 +121,7 @@ func TestRunMv(t *testing.T) {
 		},
 		{
 			name: "dry-run mode does not move",
-			args: []string{"test-group", "old.md", "new.md"},
+			args: []string{"test-group", ".claude/old.md", ".claude/new.md"},
 			setupFiles: func() {
 				os.WriteFile(testFile1, []byte("test"), 0644)
 				os.WriteFile(testFile2, []byte("test"), 0644)
@@ -151,7 +151,7 @@ func TestRunMv(t *testing.T) {
 		},
 		{
 			name: "move non-existent file succeeds with skip",
-			args: []string{"test-group", "nonexistent.md", "new.md"},
+			args: []string{"test-group", ".claude/nonexistent.md", ".claude/new.md"},
 			setupFiles: func() {
 				// No files to create
 			},
@@ -167,7 +167,7 @@ func TestRunMv(t *testing.T) {
 		},
 		{
 			name: "move with destination already exists",
-			args: []string{"test-group", "old.md", "existing.md"},
+			args: []string{"test-group", ".claude/old.md", ".claude/existing.md"},
 			setupFiles: func() {
 				os.WriteFile(testFile1, []byte("old"), 0644)
 				existingFile := filepath.Join(project1, "existing.md")
@@ -195,7 +195,7 @@ func TestRunMv(t *testing.T) {
 		},
 		{
 			name: "invalid group name returns error",
-			args: []string{"nonexistent-group", "old.md", "new.md"},
+			args: []string{"nonexistent-group", ".claude/old.md", ".claude/new.md"},
 			setupFiles: func() {
 				// No setup needed
 			},
@@ -441,7 +441,7 @@ func TestMvCommandFlags(t *testing.T) {
 			cfgFile = configPath
 
 			// Run command
-			err := runMv(nil, []string{"test", "old.md", "new.md"})
+			err := runMv(nil, []string{"test", ".claude/old.md", ".claude/new.md"})
 			if err != nil {
 				t.Errorf("runMv() unexpected error: %v", err)
 			}
