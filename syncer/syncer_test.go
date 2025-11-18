@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/yugo-ibuki/dot-claude-sync/config"
-	"github.com/yugo-ibuki/dot-claude-sync/utils"
 )
 
 // TestSyncFiles_OverwriteDetection tests the overwrite detection logic
@@ -439,15 +438,5 @@ func TestExpandPath(t *testing.T) {
 		if result != tt.expected {
 			t.Errorf("expandPath(%s) = %s, expected %s", tt.input, result, tt.expected)
 		}
-	}
-}
-
-// Helper function to create a test file with specific content
-func createTestFile(t *testing.T, path string, content string) {
-	if err := utils.EnsureDir(filepath.Dir(path)); err != nil {
-		t.Fatalf("Failed to ensure directory: %v", err)
-	}
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("Failed to write test file %s: %v", path, err)
 	}
 }
