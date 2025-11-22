@@ -700,7 +700,7 @@ func TestValidateClaudePath(t *testing.T) {
 			"/home/user/project/.claude",
 			"./relative/.claude",
 			".claude",
-			"/path/to/.claude/",  // with trailing slash
+			"/path/to/.claude/", // with trailing slash
 		}
 
 		for _, path := range validPaths {
@@ -732,7 +732,7 @@ func TestGetProjectPathsValidation(t *testing.T) {
 	t.Run("reject invalid paths in map format", func(t *testing.T) {
 		group := &Group{
 			Paths: map[string]interface{}{
-				"project-a": "/path/to/project",  // invalid - doesn't end with .claude
+				"project-a": "/path/to/project", // invalid - doesn't end with .claude
 			},
 		}
 
@@ -748,7 +748,7 @@ func TestGetProjectPathsValidation(t *testing.T) {
 	t.Run("reject invalid paths in list format", func(t *testing.T) {
 		group := &Group{
 			Paths: []interface{}{
-				"/path/to/project",  // invalid
+				"/path/to/project", // invalid
 			},
 		}
 
