@@ -463,6 +463,9 @@ Summary: 2 files moved
   - cmd/root.goのVersionフィールドを自動更新
   - バージョン更新PRを自動作成
   - ビルド検証を含む
+  - workflow_dispatch手動トリガーサポート
+  - セマンティックバージョニング検証
+  - detached HEAD状態の修正（mainブランチ明示的チェックアウト）
 - ✅ CLAUDE.md更新（Version Management Workflowセクション追加）
   - リリースプロセスのドキュメント化
   - 手動バージョン更新の手順追加
