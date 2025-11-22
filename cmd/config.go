@@ -36,11 +36,19 @@ var configAddGroupCmd = &cobra.Command{
 }
 
 var configRemoveGroupCmd = &cobra.Command{
-	Use:   "remove-group <name>",
+	Use:   "remove-group [name]",
 	Short: "Remove a group",
-	Long:  `Remove a group from the configuration.`,
-	Args:  cobra.ExactArgs(1),
-	RunE:  runConfigRemoveGroup,
+	Long: `Remove a group from the configuration.
+
+Interactive mode (no arguments):
+  dot-claude-sync config remove-group
+
+  This will display a list of available groups to select from.
+
+Argument mode (1 argument):
+  dot-claude-sync config remove-group <name>`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runConfigRemoveGroup,
 }
 
 var configAddProjectCmd = &cobra.Command{
@@ -63,19 +71,39 @@ Argument mode (3 arguments):
 }
 
 var configRemoveProjectCmd = &cobra.Command{
-	Use:   "remove-project <group> <alias>",
+	Use:   "remove-project [group] [alias]",
 	Short: "Remove a project from a group",
-	Long:  `Remove a project from an existing group.`,
-	Args:  cobra.ExactArgs(2),
-	RunE:  runConfigRemoveProject,
+	Long: `Remove a project from an existing group.
+
+Interactive mode (no arguments):
+  dot-claude-sync config remove-project
+
+  This will prompt you to:
+  1. Select a group
+  2. Select a project to remove from that group
+
+Argument mode (2 arguments):
+  dot-claude-sync config remove-project <group> <alias>`,
+	Args: cobra.MaximumNArgs(2),
+	RunE: runConfigRemoveProject,
 }
 
 var configSetPriorityCmd = &cobra.Command{
-	Use:   "set-priority <group> <alias1> [alias2] [alias3]...",
+	Use:   "set-priority [group] [alias1] [alias2] [alias3]...",
 	Short: "Set priority order for a group",
-	Long:  `Set the priority order for projects in a group. First alias has highest priority.`,
-	Args:  cobra.MinimumNArgs(2),
-	RunE:  runConfigSetPriority,
+	Long: `Set the priority order for projects in a group. First alias has highest priority.
+
+Interactive mode (no arguments):
+  dot-claude-sync config set-priority
+
+  This will prompt you to:
+  1. Select a group
+  2. Select projects in priority order (highest to lowest)
+
+Argument mode (2+ arguments):
+  dot-claude-sync config set-priority <group> <alias1> [alias2] [alias3]...`,
+	Args: cobra.MinimumNArgs(0),
+	RunE: runConfigSetPriority,
 }
 
 func init() {
@@ -170,11 +198,63 @@ func runConfigAddGroup(cmd *cobra.Command, args []string) error {
 }
 
 func runConfigRemoveGroup(cmd *cobra.Command, args []string) error {
-	groupName := args[0]
-
 	cfg, err := config.Load(cfgFile)
 	if err != nil {
 		return err
+	}
+
+	var groupName string
+
+	// Handle different argument modes based on argument count
+	switch len(args) {
+	case 0:
+		// Interactive mode: No arguments provided
+		reader := bufio.NewReader(os.Stdin)
+
+		// List available groups
+		groupNames := make([]string, 0, len(cfg.Groups))
+		for name := range cfg.Groups {
+			groupNames = append(groupNames, name)
+		}
+		sort.Strings(groupNames)
+
+		if len(groupNames) == 0 {
+			fmt.Println("No groups found")
+			return nil
+		}
+
+		// Display groups with project counts
+		fmt.Println("Available groups:")
+		fmt.Println()
+		for i, name := range groupNames {
+			group, _ := cfg.GetGroup(name)
+			projects, _ := group.GetProjectPaths()
+			fmt.Printf("  %d. %s (%d projects)\n", i+1, name, len(projects))
+		}
+		fmt.Println()
+
+		// Prompt for selection
+		fmt.Print("Select group number to remove (or press Enter to cancel): ")
+		selection, _ := reader.ReadString('\n')
+		selection = strings.TrimSpace(selection)
+
+		if selection == "" {
+			fmt.Println("Cancelled")
+			return nil
+		}
+
+		idx, err := strconv.Atoi(selection)
+		if err != nil || idx < 1 || idx > len(groupNames) {
+			return fmt.Errorf("invalid selection: %s", selection)
+		}
+		groupName = groupNames[idx-1]
+
+	case 1:
+		// Argument mode: 1 argument provided
+		groupName = args[0]
+
+	default:
+		return fmt.Errorf("invalid number of arguments: expected 0 or 1, got %d", len(args))
 	}
 
 	// Confirm deletion
@@ -341,12 +421,105 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 }
 
 func runConfigRemoveProject(cmd *cobra.Command, args []string) error {
-	groupName := args[0]
-	alias := args[1]
-
 	cfg, err := config.Load(cfgFile)
 	if err != nil {
 		return err
+	}
+
+	var groupName, alias string
+
+	// Handle different argument modes based on argument count
+	switch len(args) {
+	case 0:
+		// Interactive mode: No arguments provided
+		reader := bufio.NewReader(os.Stdin)
+
+		// Step 1: List available groups
+		groupNames := make([]string, 0, len(cfg.Groups))
+		for name := range cfg.Groups {
+			groupNames = append(groupNames, name)
+		}
+		sort.Strings(groupNames)
+
+		if len(groupNames) == 0 {
+			fmt.Println("No groups found")
+			return nil
+		}
+
+		// Display groups
+		fmt.Println("Available groups:")
+		fmt.Println()
+		for i, name := range groupNames {
+			group, _ := cfg.GetGroup(name)
+			projects, _ := group.GetProjectPaths()
+			fmt.Printf("  %d. %s (%d projects)\n", i+1, name, len(projects))
+		}
+		fmt.Println()
+
+		// Prompt for group selection
+		fmt.Print("Select group number (or press Enter to cancel): ")
+		selection, _ := reader.ReadString('\n')
+		selection = strings.TrimSpace(selection)
+
+		if selection == "" {
+			fmt.Println("Cancelled")
+			return nil
+		}
+
+		idx, err := strconv.Atoi(selection)
+		if err != nil || idx < 1 || idx > len(groupNames) {
+			return fmt.Errorf("invalid selection: %s", selection)
+		}
+		groupName = groupNames[idx-1]
+
+		// Step 2: List projects in selected group
+		group, err := cfg.GetGroup(groupName)
+		if err != nil {
+			return err
+		}
+
+		projects, err := group.GetProjectPaths()
+		if err != nil {
+			return fmt.Errorf("failed to get project paths: %w", err)
+		}
+
+		if len(projects) == 0 {
+			fmt.Printf("Group '%s' has no projects\n", groupName)
+			return nil
+		}
+
+		fmt.Println()
+		fmt.Printf("Projects in group '%s':\n", groupName)
+		fmt.Println()
+		for i, proj := range projects {
+			fmt.Printf("  %d. %s\n", i+1, proj.Alias)
+			fmt.Printf("      %s\n", proj.Path)
+		}
+		fmt.Println()
+
+		// Prompt for project selection
+		fmt.Print("Select project number to remove (or press Enter to cancel): ")
+		selection, _ = reader.ReadString('\n')
+		selection = strings.TrimSpace(selection)
+
+		if selection == "" {
+			fmt.Println("Cancelled")
+			return nil
+		}
+
+		idx, err = strconv.Atoi(selection)
+		if err != nil || idx < 1 || idx > len(projects) {
+			return fmt.Errorf("invalid selection: %s", selection)
+		}
+		alias = projects[idx-1].Alias
+
+	case 2:
+		// Argument mode: 2 arguments provided
+		groupName = args[0]
+		alias = args[1]
+
+	default:
+		return fmt.Errorf("invalid number of arguments: expected 0 or 2, got %d", len(args))
 	}
 
 	if err := cfg.RemoveProject(groupName, alias); err != nil {
@@ -357,17 +530,142 @@ func runConfigRemoveProject(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 
+	fmt.Println()
 	fmt.Printf("✓ Removed project '%s' from group '%s'\n", alias, groupName)
 	return nil
 }
 
 func runConfigSetPriority(cmd *cobra.Command, args []string) error {
-	groupName := args[0]
-	aliases := args[1:]
-
 	cfg, err := config.Load(cfgFile)
 	if err != nil {
 		return err
+	}
+
+	var groupName string
+	var aliases []string
+
+	// Handle different argument modes based on argument count
+	switch len(args) {
+	case 0:
+		// Interactive mode: No arguments provided
+		reader := bufio.NewReader(os.Stdin)
+
+		// Step 1: List available groups
+		groupNames := make([]string, 0, len(cfg.Groups))
+		for name := range cfg.Groups {
+			groupNames = append(groupNames, name)
+		}
+		sort.Strings(groupNames)
+
+		if len(groupNames) == 0 {
+			fmt.Println("No groups found")
+			return nil
+		}
+
+		// Display groups
+		fmt.Println("Available groups:")
+		fmt.Println()
+		for i, name := range groupNames {
+			group, _ := cfg.GetGroup(name)
+			projects, _ := group.GetProjectPaths()
+			fmt.Printf("  %d. %s (%d projects)\n", i+1, name, len(projects))
+		}
+		fmt.Println()
+
+		// Prompt for group selection
+		fmt.Print("Select group number (or press Enter to cancel): ")
+		selection, _ := reader.ReadString('\n')
+		selection = strings.TrimSpace(selection)
+
+		if selection == "" {
+			fmt.Println("Cancelled")
+			return nil
+		}
+
+		idx, err := strconv.Atoi(selection)
+		if err != nil || idx < 1 || idx > len(groupNames) {
+			return fmt.Errorf("invalid selection: %s", selection)
+		}
+		groupName = groupNames[idx-1]
+
+		// Step 2: List projects in selected group
+		group, err := cfg.GetGroup(groupName)
+		if err != nil {
+			return err
+		}
+
+		projects, err := group.GetProjectPaths()
+		if err != nil {
+			return fmt.Errorf("failed to get project paths: %w", err)
+		}
+
+		if len(projects) == 0 {
+			fmt.Printf("Group '%s' has no projects\n", groupName)
+			return nil
+		}
+
+		fmt.Println()
+		fmt.Printf("Projects in group '%s':\n", groupName)
+		fmt.Println()
+		for i, proj := range projects {
+			fmt.Printf("  %d. %s (current priority: %d)\n", i+1, proj.Alias, proj.Priority)
+		}
+		fmt.Println()
+
+		// Step 3: Prompt for priority order
+		fmt.Println("Enter project numbers in priority order (highest to lowest).")
+		fmt.Println("Separate numbers with spaces or commas (e.g., '1 3 2' or '1,3,2').")
+		fmt.Println("Press Enter to use current order, or 'cancel' to abort.")
+		fmt.Print("Priority order: ")
+
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+
+		if input == "" {
+			fmt.Println("Using current priority order")
+			return nil
+		}
+
+		if strings.ToLower(input) == "cancel" {
+			fmt.Println("Cancelled")
+			return nil
+		}
+
+		// Parse input (support both space and comma separators)
+		input = strings.ReplaceAll(input, ",", " ")
+		parts := strings.Fields(input)
+
+		selectedIndices := make([]int, 0, len(parts))
+		for _, part := range parts {
+			idx, err := strconv.Atoi(part)
+			if err != nil || idx < 1 || idx > len(projects) {
+				return fmt.Errorf("invalid project number: %s", part)
+			}
+			selectedIndices = append(selectedIndices, idx-1)
+		}
+
+		// Check for duplicates
+		seen := make(map[int]bool)
+		for _, idx := range selectedIndices {
+			if seen[idx] {
+				return fmt.Errorf("duplicate project number: %d", idx+1)
+			}
+			seen[idx] = true
+		}
+
+		// Build aliases list from selected indices
+		aliases = make([]string, 0, len(selectedIndices))
+		for _, idx := range selectedIndices {
+			aliases = append(aliases, projects[idx].Alias)
+		}
+
+	default:
+		// Argument mode: 1+ arguments provided
+		if len(args) < 2 {
+			return fmt.Errorf("argument mode requires at least 2 arguments: <group> <alias1> [alias2]...")
+		}
+		groupName = args[0]
+		aliases = args[1:]
 	}
 
 	if err := cfg.SetPriority(groupName, aliases); err != nil {
@@ -378,6 +676,7 @@ func runConfigSetPriority(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 
+	fmt.Println()
 	fmt.Printf("✓ Updated priority for group '%s'\n", groupName)
 	fmt.Println("  Priority order:")
 	for i, alias := range aliases {
