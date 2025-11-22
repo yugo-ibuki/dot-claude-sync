@@ -221,8 +221,9 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 	var groupName, alias, path string
 	var createNew bool
 
-	// Interactive mode (no arguments)
-	if len(args) == 0 {
+	switch len(args) {
+	case 0:
+		// Interactive mode (no arguments)
 		reader := bufio.NewReader(os.Stdin)
 
 		// List available groups (if any)
@@ -300,7 +301,8 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 			fmt.Printf("DRY RUN: Would add project '%s' -> %s to group '%s'\n", alias, path, groupName)
 			return nil
 		}
-	} else if len(args) == 3 {
+
+	case 3:
 		// Argument mode (original behavior)
 		groupName = args[0]
 		alias = args[1]
@@ -310,7 +312,8 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 			fmt.Printf("DRY RUN: Would add project '%s' -> %s to group '%s'\n", alias, path, groupName)
 			return nil
 		}
-	} else {
+
+	default:
 		return fmt.Errorf("invalid number of arguments: expected 0 or 3, got %d", len(args))
 	}
 
