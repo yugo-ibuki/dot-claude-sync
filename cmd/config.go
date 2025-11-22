@@ -1,7 +1,12 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -39,11 +44,22 @@ var configRemoveGroupCmd = &cobra.Command{
 }
 
 var configAddProjectCmd = &cobra.Command{
-	Use:   "add-project <group> <alias> <path>",
+	Use:   "add-project [group] [alias] [path]",
 	Short: "Add a project to a group",
-	Long:  `Add a new project to an existing group.`,
-	Args:  cobra.ExactArgs(3),
-	RunE:  runConfigAddProject,
+	Long: `Add a new project to an existing group.
+
+Interactive mode (no arguments):
+  dot-claude-sync config add-project
+
+  This will prompt you to:
+  1. Select an existing group or create a new one
+  2. Enter a project alias
+  3. Enter the project path
+
+Argument mode (3 arguments):
+  dot-claude-sync config add-project <group> <alias> <path>`,
+	Args: cobra.MaximumNArgs(3),
+	RunE: runConfigAddProject,
 }
 
 var configRemoveProjectCmd = &cobra.Command{
@@ -197,13 +213,117 @@ func runConfigRemoveGroup(cmd *cobra.Command, args []string) error {
 }
 
 func runConfigAddProject(cmd *cobra.Command, args []string) error {
-	groupName := args[0]
-	alias := args[1]
-	path := args[2]
-
 	cfg, err := config.Load(cfgFile)
 	if err != nil {
 		return err
+	}
+
+	var groupName, alias, path string
+	var createNew bool
+
+	// Handle different argument modes based on argument count
+	switch len(args) {
+	case 0:
+		// Interactive mode: No arguments provided
+		// Prompts user to select an existing group or create a new one,
+		// then asks for project alias and path interactively
+		reader := bufio.NewReader(os.Stdin)
+
+		// Step 1: List available groups and let user select or create new one
+		groupNames := make([]string, 0, len(cfg.Groups))
+		for name := range cfg.Groups {
+			groupNames = append(groupNames, name)
+		}
+		sort.Strings(groupNames)
+
+		// Display existing groups if any
+		if len(groupNames) > 0 {
+			fmt.Println("Available groups:")
+			fmt.Println()
+			for i, name := range groupNames {
+				fmt.Printf("  %d. %s\n", i+1, name)
+			}
+			fmt.Println()
+		}
+
+		// Step 2: Prompt user to select existing group or create new one
+		var prompt string
+		if len(groupNames) > 0 {
+			prompt = "Select group number (or press Enter to create a new group): "
+		} else {
+			prompt = "No groups found. Press Enter to create a new group: "
+		}
+		fmt.Print(prompt)
+		selection, _ := reader.ReadString('\n')
+		selection = strings.TrimSpace(selection)
+
+		if selection == "" {
+			// User pressed Enter without input: Create new group
+			createNew = true
+			fmt.Print("New group name: ")
+			groupName, _ = reader.ReadString('\n')
+			groupName = strings.TrimSpace(groupName)
+			if groupName == "" {
+				return fmt.Errorf("group name cannot be empty")
+			}
+			// Add new group to configuration
+			if err := cfg.AddGroup(groupName); err != nil {
+				return fmt.Errorf("failed to add group: %w", err)
+			}
+		} else {
+			// User entered a number: Select existing group
+			idx, err := strconv.Atoi(selection)
+			if err != nil || idx < 1 || idx > len(groupNames) {
+				return fmt.Errorf("invalid selection: %s", selection)
+			}
+			groupName = groupNames[idx-1]
+		}
+
+		fmt.Println()
+		fmt.Printf("Adding project to group: %s\n", groupName)
+		fmt.Println()
+
+		// Step 3: Get project details (alias and path)
+		fmt.Print("Project alias: ")
+		alias, _ = reader.ReadString('\n')
+		alias = strings.TrimSpace(alias)
+
+		if alias == "" {
+			return fmt.Errorf("project alias cannot be empty")
+		}
+
+		fmt.Print("Project path (absolute path to .claude directory): ")
+		path, _ = reader.ReadString('\n')
+		path = strings.TrimSpace(path)
+
+		if path == "" {
+			return fmt.Errorf("project path cannot be empty")
+		}
+
+		if dryRun {
+			if createNew {
+				fmt.Printf("DRY RUN: Would create new group '%s'\n", groupName)
+			}
+			fmt.Printf("DRY RUN: Would add project '%s' -> %s to group '%s'\n", alias, path, groupName)
+			return nil
+		}
+
+	case 3:
+		// Argument mode: 3 arguments provided
+		// Usage: dot-claude-sync config add-project <group> <alias> <path>
+		// Non-interactive mode for scripting and CI/CD workflows
+		groupName = args[0]
+		alias = args[1]
+		path = args[2]
+
+		if dryRun {
+			fmt.Printf("DRY RUN: Would add project '%s' -> %s to group '%s'\n", alias, path, groupName)
+			return nil
+		}
+
+	default:
+		// Invalid argument count: Must be either 0 (interactive) or 3 (argument mode)
+		return fmt.Errorf("invalid number of arguments: expected 0 or 3, got %d", len(args))
 	}
 
 	if err := cfg.AddProject(groupName, alias, path); err != nil {
@@ -214,6 +334,7 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 
+	fmt.Println()
 	fmt.Printf("✓ Added project '%s' to group '%s'\n", alias, groupName)
 	fmt.Printf("  Path: %s\n", path)
 	return nil
