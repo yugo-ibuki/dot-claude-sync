@@ -22,6 +22,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
+        ref: main  # Explicitly checkout main branch to avoid detached HEAD
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -71,6 +72,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "chore: bump version to ${{ steps.version.outputs.version }}"
         branch: "auto/version-${{ steps.version.outputs.version }}"
+        base: main  # Explicitly set base branch for PR
         delete-branch: true
         title: "chore: bump version to ${{ steps.version.outputs.version }}"
         body: |
