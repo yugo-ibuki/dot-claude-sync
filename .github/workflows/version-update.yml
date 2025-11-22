@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Triggers on version tags like v0.2.0, v1.0.0, etc.
+  workflow_dispatch:  # Allows manual triggering for testing
+    inputs:
+      version:
+        description: 'Version to update (e.g., 0.2.0)'
+        required: true
 
 permissions:
   contents: write
@@ -25,12 +30,24 @@ jobs:
       with:
         go-version: '1.23'
 
-    - name: Extract version from tag
+    - name: Extract version from tag or workflow dispatch
       id: version
       run: |
-        # Get version from tag (remove 'v' prefix if exists)
-        VERSION="${GITHUB_REF#refs/tags/}"
-        VERSION="${VERSION#v}"
+        # Prefer workflow_dispatch input if provided, otherwise use tag
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          VERSION="${{ inputs.version }}"
+        else
+          # Get version from tag (remove 'v' prefix if exists)
+          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${VERSION#v}"
+        fi
+
+        # Validate version format (semantic versioning)
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Invalid version format: $VERSION. Must be x.y.z"
+          exit 1
+        fi
+
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Extracted version: $VERSION"
 
