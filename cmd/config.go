@@ -221,18 +221,22 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 	var groupName, alias, path string
 	var createNew bool
 
+	// Handle different argument modes based on argument count
 	switch len(args) {
 	case 0:
-		// Interactive mode (no arguments)
+		// Interactive mode: No arguments provided
+		// Prompts user to select an existing group or create a new one,
+		// then asks for project alias and path interactively
 		reader := bufio.NewReader(os.Stdin)
 
-		// List available groups (if any)
+		// Step 1: List available groups and let user select or create new one
 		groupNames := make([]string, 0, len(cfg.Groups))
 		for name := range cfg.Groups {
 			groupNames = append(groupNames, name)
 		}
 		sort.Strings(groupNames)
 
+		// Display existing groups if any
 		if len(groupNames) > 0 {
 			fmt.Println("Available groups:")
 			fmt.Println()
@@ -242,7 +246,7 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 		}
 
-		// Select group
+		// Step 2: Prompt user to select existing group or create new one
 		var prompt string
 		if len(groupNames) > 0 {
 			prompt = "Select group number (or press Enter to create a new group): "
@@ -254,6 +258,7 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 		selection = strings.TrimSpace(selection)
 
 		if selection == "" {
+			// User pressed Enter without input: Create new group
 			createNew = true
 			fmt.Print("New group name: ")
 			groupName, _ = reader.ReadString('\n')
@@ -261,11 +266,12 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 			if groupName == "" {
 				return fmt.Errorf("group name cannot be empty")
 			}
-			// Add new group
+			// Add new group to configuration
 			if err := cfg.AddGroup(groupName); err != nil {
 				return fmt.Errorf("failed to add group: %w", err)
 			}
 		} else {
+			// User entered a number: Select existing group
 			idx, err := strconv.Atoi(selection)
 			if err != nil || idx < 1 || idx > len(groupNames) {
 				return fmt.Errorf("invalid selection: %s", selection)
@@ -277,7 +283,7 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Adding project to group: %s\n", groupName)
 		fmt.Println()
 
-		// Get project details
+		// Step 3: Get project details (alias and path)
 		fmt.Print("Project alias: ")
 		alias, _ = reader.ReadString('\n')
 		alias = strings.TrimSpace(alias)
@@ -303,7 +309,9 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 		}
 
 	case 3:
-		// Argument mode (original behavior)
+		// Argument mode: 3 arguments provided
+		// Usage: dot-claude-sync config add-project <group> <alias> <path>
+		// Non-interactive mode for scripting and CI/CD workflows
 		groupName = args[0]
 		alias = args[1]
 		path = args[2]
@@ -314,6 +322,7 @@ func runConfigAddProject(cmd *cobra.Command, args []string) error {
 		}
 
 	default:
+		// Invalid argument count: Must be either 0 (interactive) or 3 (argument mode)
 		return fmt.Errorf("invalid number of arguments: expected 0 or 3, got %d", len(args))
 	}
 
