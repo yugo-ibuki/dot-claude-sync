@@ -5,8 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/yugo-ibuki/dot-claude-sync/config"
 	"gopkg.in/yaml.v3"
+
+	"github.com/yugo-ibuki/dot-claude-sync/config"
 )
 
 func TestRunConfigAddProject(t *testing.T) {
