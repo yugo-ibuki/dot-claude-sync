@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -687,6 +688,93 @@ func TestYAMLRoundTrip(t *testing.T) {
 
 		if _, ok := decoded.Groups["simple-group"]; !ok {
 			t.Error("simple-group should exist after round trip")
+		}
+	})
+}
+
+// TestValidateClaudePath tests path validation
+func TestValidateClaudePath(t *testing.T) {
+	t.Run("valid paths", func(t *testing.T) {
+		validPaths := []string{
+			"/path/to/.claude",
+			"/home/user/project/.claude",
+			"./relative/.claude",
+			".claude",
+			"/path/to/.claude/",  // with trailing slash
+		}
+
+		for _, path := range validPaths {
+			if err := validateClaudePath(path); err != nil {
+				t.Errorf("Expected path to be valid, got error for %s: %v", path, err)
+			}
+		}
+	})
+
+	t.Run("invalid paths", func(t *testing.T) {
+		invalidPaths := []string{
+			"/path/to/project",
+			"/home/user/.config",
+			"./relative/folder",
+			"/path/to/.claude-sync",
+			".claude-backup",
+		}
+
+		for _, path := range invalidPaths {
+			if err := validateClaudePath(path); err == nil {
+				t.Errorf("Expected path to be invalid, but got no error for %s", path)
+			}
+		}
+	})
+}
+
+// TestGetProjectPathsValidation tests path validation in GetProjectPaths
+func TestGetProjectPathsValidation(t *testing.T) {
+	t.Run("reject invalid paths in map format", func(t *testing.T) {
+		group := &Group{
+			Paths: map[string]interface{}{
+				"project-a": "/path/to/project",  // invalid - doesn't end with .claude
+			},
+		}
+
+		_, err := group.GetProjectPaths()
+		if err == nil {
+			t.Error("Expected error for invalid path, got nil")
+		}
+		if err != nil && !strings.Contains(err.Error(), "must end with .claude") {
+			t.Errorf("Expected error message about .claude, got: %v", err)
+		}
+	})
+
+	t.Run("reject invalid paths in list format", func(t *testing.T) {
+		group := &Group{
+			Paths: []interface{}{
+				"/path/to/project",  // invalid
+			},
+		}
+
+		_, err := group.GetProjectPaths()
+		if err == nil {
+			t.Error("Expected error for invalid path, got nil")
+		}
+		if err != nil && !strings.Contains(err.Error(), "must end with .claude") {
+			t.Errorf("Expected error message about .claude, got: %v", err)
+		}
+	})
+
+	t.Run("accept valid paths", func(t *testing.T) {
+		group := &Group{
+			Paths: map[string]interface{}{
+				"project-a": "/path/to/.claude",
+				"project-b": "/path/to/other/.claude",
+			},
+		}
+
+		projects, err := group.GetProjectPaths()
+		if err != nil {
+			t.Errorf("Expected no error for valid paths, got: %v", err)
+		}
+		if len(projects) != 2 {
+			t.Errorf("Expected 2 projects, got %d", len(projects))
 		}
 	})
 }
