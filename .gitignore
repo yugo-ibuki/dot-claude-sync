@@ -1,6 +1,11 @@
 # Binaries
 claude-sync
 dot-claude-sync
+<<<<<<< HEAD
+||||||| f462719
+=======
+/dcs
+>>>>>>> main
 *.exe
 *.exe~
 *.dll
@@ -29,3 +34,4 @@ go.work
 Thumbs.db
 
 .claude
+.serena

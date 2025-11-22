@@ -2,124 +2,249 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL: Git Remote Operations Policy
+
+**NEVER execute the following commands without explicit user instruction:**
+- `git push`
+- `git push --force`
+- `git push --force-with-lease`
+- `git tag` (with push)
+- Any command that modifies remote repository state
+
+**Always ask for confirmation before:**
+- Pushing commits to remote
+- Creating or pushing tags
+- Any operation that affects the remote repository
+
+**Allowed without confirmation:**
+- Local commits (`git commit`)
+- Staging files (`git add`)
+- Creating local branches
+- Local git operations that don't affect remote
+
+**If asked "did you commit?" or similar:**
+- Answer only about the local commit status
+- Do NOT proceed to push without explicit instruction
+- Ask if the user wants to push
+
 ## Project Overview
 
-claude-sync is a CLI tool that synchronizes `.claude` directories across multiple independent projects in a workspace. It manages files in groups, performs bulk operations (add, overwrite, delete, move), and resolves conflicts based on configurable priority settings.
+dot-claude-sync is a CLI tool that synchronizes `.claude` directories across multiple independent projects in a workspace (particularly useful for git worktrees). It manages files in groups, performs bulk operations (push, rm, mv, backup), and resolves conflicts based on configurable priority settings.
 
-## Build and Development Commands
+## Development Commands
 
+### Building
 ```bash
-# Build the binary
-go build -o claude-sync
+# Build both binaries
+go build                      # Creates dot-claude-sync
+go build -o dcs ./cmd/dcs     # Creates dcs (short alias)
 
-# Install locally
-go install
+# Install to $GOPATH/bin
+go install                    # Installs dot-claude-sync
+go install ./cmd/dcs          # Installs dcs
+```
 
-# Run directly
-go run main.go <command>
+### Testing
+```bash
+# Run all tests
+go test ./...
 
-# Run with specific command
-go run main.go init
-go run main.go push web-projects
-go run main.go list
+# Run tests with verbose output
+go test -v ./...
 
-# Check dependencies
+# Run specific package tests
+go test ./config
+go test ./syncer
+go test ./cmd
+
+# Run single test
+go test -v -run TestResolveConflicts ./syncer
+
+# Check test coverage
+go test -cover ./...
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
+
+### Code Quality
+```bash
+# Run linter (requires golangci-lint)
+golangci-lint run
+
+# Format code
+gofmt -w .
+goimports -w .
+
+# Tidy dependencies
 go mod tidy
 go mod verify
 ```
 
-## Architecture
+### Running Without Building
+```bash
+# Run commands directly
+go run main.go init
+go run main.go push web-projects
+go run main.go list
+go run main.go detect ~/projects/app --group my-group
+```
 
-### Command Structure (Cobra-based CLI)
+**Important**: Build artifacts (`dot-claude-sync`, `dcs`) are in `.gitignore`. Never commit binaries.
 
-The project uses `github.com/spf13/cobra` for CLI commands:
+## Architecture Overview
 
-- **main.go**: Entry point that calls `cmd.Execute()`
-- **cmd/root.go**: Root command with global flags (`--config`, `--dry-run`, `--verbose`, `--force`)
-- **cmd/init.go**: Interactive configuration file creation
-- **cmd/push.go**: File synchronization across projects (TODO: implementation pending)
-- **cmd/rm.go**: Delete files from all projects in a group
-- **cmd/mv.go**: Move/rename files across all projects
-- **cmd/list.go**: Display groups and group details
+### Three-Phase Sync Pipeline
+
+The core synchronization follows a collect → resolve → distribute pattern:
+
+1. **Collection Phase** (`syncer/collector.go`):
+   - `CollectFiles()`: Walks `.claude` directories in all projects
+   - `GroupFilesByRelPath()`: Groups files by relative path (e.g., `prompts/auth.md`)
+   - Returns `[]FileInfo` with source project metadata
+
+2. **Conflict Resolution Phase** (`syncer/resolver.go`):
+   - `ResolveConflicts()`: Handles duplicate filenames across projects
+   - Priority-based selection: highest priority project wins
+   - Returns `[]ResolvedFile` with winning source and conflict metadata
+
+3. **Distribution Phase** (`syncer/syncer.go`):
+   - `SyncFiles()`: Copies resolved files to all projects in group
+   - `syncToProject()`: Handles per-project file operations
+   - Skips overwriting identical files (hash comparison)
+   - Returns `SyncResult` with operation summaries
 
 ### Configuration System
 
-**config/config.go** handles YAML configuration loading and parsing:
+**Priority Resolution** (`config/config.go`):
+- `Group.GetProjectPaths()` resolves both map and slice path formats
+- Priority order: explicit `priority` list > `paths` order > unranked (lowest)
+- `ProjectPath` struct contains `Alias`, `Path`, and `Priority` ranking
 
-- **Config struct**: Root configuration with `Groups` map
-- **Group struct**: Flexible `Paths` (map or slice) and optional `Priority` list
-- **ProjectPath struct**: Resolved paths with alias and priority ranking
+**Path Handling**:
+- `~` expansion in paths (e.g., `~/projects/.claude`)
+- Absolute path resolution via `filepath.Abs()`
+- Validation via `utils.ValidateAndNormalizePath()`
 
-**Configuration priority rules**:
-1. If `priority` list is specified, use that order
-2. If no `priority`, use `paths` order as default priority
-3. Projects not in `priority` list get lowest priority (len(priority) + 1)
+### Command Structure
 
-**Configuration file location** (fixed):
-- Default: `~/.config/claude-sync/config.yaml`
-- Override with `--config` flag
+**Cobra Commands** (`cmd/`):
+- `root.go`: Global flags (--config, --dry-run, --verbose, --force)
+- `init.go`: Interactive config creation with prompts
+- `push.go`: Three-phase sync execution
+- `detect.go`: Git worktree auto-detection via `git worktree list --porcelain`
+- `config.go`: Subcommands (add-group, remove-group, add-project, remove-project, set-priority)
+- `backup.go`: Timestamped backups to `~/.local/share/dot-claude-sync/backups/`
+- `rm.go`, `mv.go`, `list.go`: Bulk file operations
 
-### Data Flow for `push` Command (To Be Implemented)
+**Entry Points**:
+- `main.go`: Calls `cmd.Execute()` for `dot-claude-sync` binary
+- `cmd/dcs/main.go`: Same logic for `dcs` alias
 
-1. Load configuration from `~/.config/claude-sync/config.yaml`
-2. Parse group and resolve project paths with priorities
-3. **Collection phase**: Gather all files from `.claude` directories across projects
-4. **Conflict resolution**: For duplicate filenames, select from highest priority project
-5. **Distribution phase**: Copy resolved files to all projects in the group
+### Key Data Structures
 
-### Core Packages
+```go
+// syncer/collector.go
+type FileInfo struct {
+    RelPath    string   // Relative path within .claude dir
+    FullPath   string   // Absolute path on filesystem
+    Hash       string   // SHA256 file hash
+    ProjectIdx int      // Index in project list
+    Alias      string   // Project alias from config
+}
 
-- **cmd/**: Cobra command definitions and execution logic
-- **config/**: Configuration loading, parsing, and priority resolution
-- **syncer/**: (Empty) Intended for file collection, conflict resolution, and sync logic
-- **utils/**: (Empty) Intended for file operations and user prompts
+// syncer/resolver.go
+type ResolvedFile struct {
+    RelPath       string
+    SourcePath    string
+    SourceProject string
+    SourcePriority int
+    Hash          string
+}
 
-## Implementation Status
+type Conflict struct {
+    RelPath  string
+    Projects []ConflictEntry  // All projects with this file
+    Winner   ConflictEntry    // Chosen by priority
+}
 
-**Completed**:
-- CLI structure with Cobra commands
-- Configuration file loading and parsing
-- Priority resolution system
-- Interactive `init` command for config creation
+// syncer/syncer.go
+type SyncResult struct {
+    ProjectAlias string
+    Copied       []string  // Successfully copied files
+    Skipped      []string  // Identical files (no copy needed)
+    Failed       []string  // Copy failures
+    Overwrites   []OverwriteInfo
+    Error        error
+}
+```
 
-**TODO (marked in code)**:
-- File collection logic in `push` command
-- Conflict resolution implementation
-- File synchronization implementation
-- `rm` command file deletion logic
-- `mv` command file moving logic
-- Error handling for missing/invalid paths
-- Unit tests
+## Configuration File
 
-## Configuration Examples
+**Location**: `~/.config/dot-claude-sync/config.yaml` (override with `--config`)
 
-See README.md for detailed examples. Key formats:
+**Format Options**:
 
-**With aliases**:
 ```yaml
+# Option 1: Map with aliases and explicit priority
 groups:
   web-projects:
     paths:
-      frontend: ~/projects/web-frontend/.claude
-      backend: ~/projects/web-backend/.claude
+      main: ~/projects/main/.claude
+      feature-a: ~/projects/feature-a/.claude
+      feature-b: ~/projects/feature-b/.claude
     priority:
-      - frontend
-```
+      - main        # Highest priority (rank 1)
+      - feature-a   # Rank 2
+      # feature-b gets rank 3 (not in priority list)
 
-**Without aliases (simple list)**:
-```yaml
+# Option 2: Simple list (order = priority)
 groups:
   go-projects:
     paths:
-      - ~/go/src/project-a/.claude
-      - ~/go/src/project-b/.claude
+      - ~/go/src/project-a/.claude  # Priority 1
+      - ~/go/src/project-b/.claude  # Priority 2
 ```
 
-## Key Implementation Notes
+## Key Implementation Patterns
 
-- All commands support `--dry-run` for safe testing
-- `--force` skips confirmation prompts (for `rm`/`mv`)
-- Configuration path resolution handles `~` expansion
-- Priority system allows both explicit `priority` list and implicit `paths` order
-- Interactive `init` command guides users through initial setup
-- Version is hardcoded in `root.go` (0.1.0)
+### Table-Driven Tests
+Tests use `[]struct` pattern with subtests:
+```go
+tests := []struct {
+    name    string
+    setup   func(t *testing.T) string
+    want    expectedResult
+}{
+    {name: "test case 1", setup: ..., want: ...},
+}
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        // Test implementation
+    })
+}
+```
+
+### Error Handling
+- Early returns with `fmt.Errorf()` wrapping
+- User-friendly error messages with context
+- `--verbose` flag for detailed logging
+- `--dry-run` for safe preview mode
+
+### File Operations
+**Atomic Operations** (`utils/file.go`):
+- `CopyFile()`: Creates parent dirs, preserves permissions
+- `FileHash()`: SHA256 hashing for duplicate detection
+- `EnsureDir()`: Recursive directory creation
+- `ValidateAndNormalizePath()`: Path validation with ~ expansion
+
+### Git Worktree Integration
+`detect` command parses `git worktree list --porcelain`:
+```
+worktree /path/to/worktree
+HEAD <commit>
+branch refs/heads/branch-name
+
+worktree /path/to/another
+...
+```
+Extracts paths, checks for `.claude` directories, adds to group config.

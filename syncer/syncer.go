@@ -20,10 +20,82 @@ type SyncResult struct {
 	SkipReason  string  // Reason for skipping
 }
 
+// OverwriteInfo holds information about files that will be overwritten
+type OverwriteInfo struct {
+	DestProject   string // Destination project alias
+	SourceProject string // Source project alias (where the file is coming from)
+	RelPath       string // Relative path of the file
+	ContentDiff   bool   // Whether the content is different
+}
+
 // SyncFiles distributes resolved files to all projects
-func SyncFiles(resolved []ResolvedFile, projects []config.ProjectPath, dryRun bool, verbose bool) ([]SyncResult, error) {
+func SyncFiles(resolved []ResolvedFile, projects []config.ProjectPath, dryRun bool, verbose bool, force bool) ([]SyncResult, error) {
 	if len(resolved) == 0 {
 		return nil, fmt.Errorf("no files to sync")
+	}
+
+	// Collect files that would be overwritten
+	var overwriteInfo []OverwriteInfo
+	for _, project := range projects {
+		claudeDir := expandPath(project.Path)
+		if !utils.FileExists(claudeDir) {
+			continue
+		}
+
+		for _, file := range resolved {
+			dstPath := filepath.Join(claudeDir, file.RelPath)
+			if utils.FileExists(dstPath) {
+				// Only show if:
+				// 1. Destination project has lower priority (higher number) than source
+				// 2. Content is actually different
+				if project.Priority > file.Priority {
+					// Check if content is different
+					srcHash, err := utils.FileHash(file.AbsPath)
+					if err != nil {
+						continue // Skip if can't read source
+					}
+					dstHash, err := utils.FileHash(dstPath)
+					if err != nil {
+						continue // Skip if can't read destination
+					}
+
+					// Only add if content is different
+					if srcHash != dstHash {
+						overwriteInfo = append(overwriteInfo, OverwriteInfo{
+							DestProject:   project.Alias,
+							SourceProject: file.Source,
+							RelPath:       file.RelPath,
+							ContentDiff:   true,
+						})
+					}
+				}
+			}
+		}
+	}
+
+	// Show warning and ask for confirmation if overwrites would occur
+	if len(overwriteInfo) > 0 && !dryRun && !force {
+		fmt.Println("\n⚠️  Warning: The following files will be overwritten:")
+		fmt.Println()
+
+		// Group by destination project
+		byDestProject := make(map[string][]OverwriteInfo)
+		for _, info := range overwriteInfo {
+			byDestProject[info.DestProject] = append(byDestProject[info.DestProject], info)
+		}
+
+		for destProject, infos := range byDestProject {
+			fmt.Printf("  %s:\n", destProject)
+			for _, info := range infos {
+				fmt.Printf("    - %s (from %s)\n", info.RelPath, info.SourceProject)
+			}
+		}
+
+		fmt.Println()
+		if !utils.Confirm("Do you want to continue?") {
+			return nil, fmt.Errorf("sync cancelled by user")
+		}
+		fmt.Println()
 	}
 
 	var results []SyncResult

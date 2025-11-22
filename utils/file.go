@@ -1,12 +1,14 @@
 package utils
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // CopyFile copies a file from src to dst
@@ -95,6 +97,59 @@ func CopyDir(src, dst string) error {
 
 		if entry.IsDir() {
 			if err := CopyDir(srcPath, dstPath); err != nil {
+				return err
+			}
+		} else {
+			if err := CopyFile(srcPath, dstPath); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// CopyDirExclude recursively copies a directory from src to dst, excluding specified directories
+func CopyDirExclude(src, dst string, excludeDirs []string) error {
+	src = expandPath(src)
+	dst = expandPath(dst)
+
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return fmt.Errorf("failed to stat source directory: %w", err)
+	}
+
+	if !srcInfo.IsDir() {
+		return fmt.Errorf("source is not a directory: %s", src)
+	}
+
+	// Create destination directory
+	if err := os.MkdirAll(dst, srcInfo.Mode()); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return fmt.Errorf("failed to read directory: %w", err)
+	}
+
+	// Create a map for quick lookup of excluded directories
+	excludeMap := make(map[string]bool)
+	for _, dir := range excludeDirs {
+		excludeMap[dir] = true
+	}
+
+	for _, entry := range entries {
+		// Skip excluded directories
+		if entry.IsDir() && excludeMap[entry.Name()] {
+			continue
+		}
+
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			if err := CopyDirExclude(srcPath, dstPath, excludeDirs); err != nil {
 				return err
 			}
 		} else {
@@ -232,4 +287,64 @@ func expandPath(path string) string {
 	}
 
 	return filepath.Join(homeDir, path[1:])
+}
+
+// Confirm prompts the user for yes/no confirmation
+func Confirm(message string) bool {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("%s (y/n): ", message)
+
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+
+	response = strings.ToLower(strings.TrimSpace(response))
+	return response == "y" || response == "yes"
+}
+
+// ValidateAndNormalizePath validates and normalizes a path relative to .claude directory.
+// It expects the path to start with ".claude/" and removes that prefix.
+// Returns the normalized path without the ".claude/" prefix and an error if validation fails.
+func ValidateAndNormalizePath(path string) (string, error) {
+	// Trim whitespace
+	path = strings.TrimSpace(path)
+
+	if path == "" {
+		return "", fmt.Errorf("path cannot be empty")
+	}
+
+	// Check for parent directory traversal before normalization
+	if strings.Contains(path, "..") {
+		return "", fmt.Errorf("path cannot contain '..' (parent directory references)")
+	}
+
+	// Check if path starts with .claude or .claude/
+	if !strings.HasPrefix(path, ".claude") {
+		return "", fmt.Errorf("path must start with '.claude/' (e.g., '.claude/commands/foo.md')")
+	}
+
+	// Remove .claude prefix
+	// Handle both ".claude" and ".claude/"
+	if path == ".claude" {
+		return "", fmt.Errorf("path cannot be just '.claude', must specify a file or directory inside .claude")
+	}
+
+	// Remove ".claude/" prefix
+	normalized := strings.TrimPrefix(path, ".claude/")
+	normalized = strings.TrimPrefix(normalized, ".claude\\") // Handle Windows path separator
+
+	if normalized == "" || normalized == path {
+		return "", fmt.Errorf("path must specify a file or directory inside .claude (e.g., '.claude/commands/foo.md')")
+	}
+
+	// Normalize path separators
+	normalized = filepath.Clean(normalized)
+
+	// Additional validation: ensure no absolute path
+	if filepath.IsAbs(normalized) {
+		return "", fmt.Errorf("path cannot be absolute")
+	}
+
+	return normalized, nil
 }
