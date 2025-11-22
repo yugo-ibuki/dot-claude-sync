@@ -91,6 +91,46 @@ go run main.go detect ~/projects/app --group my-group
 
 **Important**: Build artifacts (`dot-claude-sync`, `dcs`) are in `.gitignore`. Never commit binaries.
 
+## Version Management Workflow
+
+The project uses an automated version update workflow triggered by git tags:
+
+### Release Process
+
+1. **Create and push a version tag**:
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+2. **Automated workflow**:
+   - GitHub Actions workflow (`.github/workflows/version-update.yml`) is triggered
+   - Extracts version number from tag (e.g., `v0.2.0` → `0.2.0`)
+   - Updates `cmd/root.go` version field
+   - Builds and verifies the binary
+   - Creates a PR with the version update
+
+3. **Review and merge**:
+   - Review the automated PR
+   - Merge the PR to update the version in main branch
+
+4. **Create GitHub Release**:
+   - Create a GitHub Release from the tag
+   - Draft or publish the release with release notes
+
+### Manual Version Update
+
+If you need to update the version manually:
+```bash
+# Edit cmd/root.go
+vim cmd/root.go
+# Change: Version: "0.1.4" → Version: "0.2.0"
+
+# Verify
+go build -o dot-claude-sync
+./dot-claude-sync --version
+```
+
 ## Architecture Overview
 
 ### Three-Phase Sync Pipeline

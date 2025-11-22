@@ -457,6 +457,16 @@ Summary: 2 files moved
 
 ### 最新の変更履歴
 
+**2025-11-22**
+- ✅ .github/workflows/version-update.yml追加（バージョン自動更新ワークフロー実装）
+  - git tagのpushでトリガー（例: `v0.2.0`）
+  - cmd/root.goのVersionフィールドを自動更新
+  - バージョン更新PRを自動作成
+  - ビルド検証を含む
+- ✅ CLAUDE.md更新（Version Management Workflowセクション追加）
+  - リリースプロセスのドキュメント化
+  - 手動バージョン更新の手順追加
+
 **2025-11-15**
 - ✅ cmd/config.go追加（設定管理コマンド実装）
   - config show - 設定表示
