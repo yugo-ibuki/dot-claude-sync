@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -101,6 +102,9 @@ func (g *Group) GetProjectPaths() ([]ProjectPath, error) {
 			if !ok {
 				return nil, fmt.Errorf("invalid path value for alias '%s'", alias)
 			}
+			if err := validateClaudePath(pathStr); err != nil {
+				return nil, fmt.Errorf("invalid path for alias '%s': %w", alias, err)
+			}
 			projects = append(projects, ProjectPath{
 				Alias: alias,
 				Path:  pathStr,
@@ -112,6 +116,9 @@ func (g *Group) GetProjectPaths() ([]ProjectPath, error) {
 			pathStr, ok := path.(string)
 			if !ok {
 				return nil, fmt.Errorf("invalid path value at index %d", i)
+			}
+			if err := validateClaudePath(pathStr); err != nil {
+				return nil, fmt.Errorf("invalid path at index %d: %w", i, err)
 			}
 			projects = append(projects, ProjectPath{
 				Alias: filepath.Base(pathStr),
@@ -284,5 +291,18 @@ func (c *Config) SetPriority(groupName string, aliases []string) error {
 	}
 
 	group.Priority = aliases
+	return nil
+}
+
+// validateClaudePath validates that a path ends with .claude directory
+func validateClaudePath(path string) error {
+	// Clean the path to handle trailing slashes
+	cleanPath := filepath.Clean(path)
+
+	// Check if the path ends with .claude
+	if !strings.HasSuffix(cleanPath, ".claude") {
+		return fmt.Errorf("path must end with .claude directory, got: %s", path)
+	}
+
 	return nil
 }
