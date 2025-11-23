@@ -19,12 +19,12 @@ var configCmd = &cobra.Command{
 	Long:  `Manage groups and projects in the configuration file.`,
 }
 
-var configShowCmd = &cobra.Command{
-	Use:   "show [group]",
-	Short: "Show configuration",
+var configListCmd = &cobra.Command{
+	Use:   "list [group]",
+	Short: "List configuration",
 	Long:  `Display the entire configuration or details of a specific group.`,
 	Args:  cobra.MaximumNArgs(1),
-	RunE:  runConfigShow,
+	RunE:  runConfigList,
 }
 
 var configAddGroupCmd = &cobra.Command{
@@ -108,7 +108,7 @@ Argument mode (2+ arguments):
 
 func init() {
 	rootCmd.AddCommand(configCmd)
-	configCmd.AddCommand(configShowCmd)
+	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configAddGroupCmd)
 	configCmd.AddCommand(configRemoveGroupCmd)
 	configCmd.AddCommand(configAddProjectCmd)
@@ -116,7 +116,7 @@ func init() {
 	configCmd.AddCommand(configSetPriorityCmd)
 }
 
-func runConfigShow(cmd *cobra.Command, args []string) error {
+func runConfigList(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load(cfgFile)
 	if err != nil {
 		return err
