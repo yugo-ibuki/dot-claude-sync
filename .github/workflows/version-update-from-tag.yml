@@ -1,8 +1,9 @@
-name: Version Update from Draft Release
+name: Version Update from Tag
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v0.2.0, v1.0.0, etc.
 
 permissions:
   contents: write
@@ -10,8 +11,6 @@ permissions:
 
 jobs:
   update-version:
-    # Only run for draft releases
-    if: github.event.release.draft == true
     runs-on: ubuntu-latest
 
     steps:
@@ -27,10 +26,11 @@ jobs:
       with:
         go-version: '1.23'
 
-    - name: Extract version from release tag
+    - name: Extract version from tag
       id: version
       run: |
-        TAG="${{ github.event.release.tag_name }}"
+        # Get version from tag (remove 'v' prefix)
+        TAG="${GITHUB_REF#refs/tags/}"
         VERSION="${TAG#v}"
 
         # Validate version format
@@ -40,7 +40,8 @@ jobs:
         fi
 
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Extracted version: $VERSION"
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION (tag: $TAG)"
 
     - name: Update version in cmd/root.go
       run: |
@@ -68,19 +69,19 @@ jobs:
         body: |
           ## Version Update for Release
 
-          This PR updates the CLI version to `${{ steps.version.outputs.version }}` for the draft release.
+          This PR updates the CLI version to `${{ steps.version.outputs.version }}` based on the git tag `${{ steps.version.outputs.tag }}`.
 
           ### Changes
           - Updated `cmd/root.go` version field to `${{ steps.version.outputs.version }}`
 
-          ### Release Information
-          - **Release**: ${{ github.event.release.html_url }}
-          - **Tag**: `${{ github.event.release.tag_name }}`
+          ### Tag Information
+          - **Tag**: `${{ steps.version.outputs.tag }}`
+          - **Commit SHA**: `${{ github.sha }}`
 
           ### Workflow
-          1. Draft release was created: ${{ github.event.release.html_url }}
+          1. Tag was pushed: `git tag ${{ steps.version.outputs.tag }} && git push origin ${{ steps.version.outputs.tag }}`
           2. This PR was automatically created
-          3. **After merging, the draft release will be automatically published**
+          3. **After merging, the tag will be moved to the latest commit and a GitHub Release will be automatically created**
 
           **Note**: This PR was automatically created by the version update workflow.
         labels: |

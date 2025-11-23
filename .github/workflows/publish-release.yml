@@ -1,4 +1,4 @@
-name: Publish Draft Release
+name: Create and Publish Release
 
 on:
   pull_request:
@@ -57,31 +57,19 @@ jobs:
 
         echo "✅ Tag $TAG moved to commit: $(git rev-parse HEAD)"
 
-    - name: Find and Publish Draft Release
+    - name: Create GitHub Release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         TAG="${{ steps.version.outputs.tag }}"
 
-        echo "Looking for draft release with tag: $TAG"
+        echo "Creating GitHub Release for tag: $TAG"
 
-        # Get release ID for the draft release with this tag
-        RELEASE_ID=$(gh api repos/${{ github.repository }}/releases \
-          --jq ".[] | select(.tag_name == \"$TAG\" and .draft == true) | .id")
+        # Create a new release
+        gh release create "$TAG" \
+          --title "Release $TAG" \
+          --generate-notes \
+          --latest
 
-        if [ -z "$RELEASE_ID" ]; then
-          echo "❌ No draft release found for tag $TAG"
-          echo "Available releases:"
-          gh api repos/${{ github.repository }}/releases --jq '.[] | "\(.tag_name) (draft: \(.draft))"'
-          exit 1
-        fi
-
-        echo "Found draft release ID: $RELEASE_ID"
-
-        # Publish the release (change draft from true to false)
-        gh api repos/${{ github.repository }}/releases/$RELEASE_ID \
-          -X PATCH \
-          -f draft=false
-
-        echo "✅ Successfully published release $TAG"
+        echo "✅ Successfully created and published release $TAG"
         echo "🎉 Release URL: https://github.com/${{ github.repository }}/releases/tag/$TAG"
