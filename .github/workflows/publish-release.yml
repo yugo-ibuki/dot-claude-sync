@@ -1,0 +1,87 @@
+name: Publish Draft Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    # Only run if PR was merged and has version-update label
+    if: |
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'version-update')
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Extract version from PR branch
+      id: version
+      run: |
+        # Branch name format: auto/version-0.3.0
+        BRANCH="${{ github.event.pull_request.head.ref }}"
+        VERSION="${BRANCH#auto/version-}"
+        TAG="v$VERSION"
+
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION (tag: $TAG)"
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        fetch-depth: 0
+
+    - name: Move tag to latest commit
+      run: |
+        TAG="${{ steps.version.outputs.tag }}"
+
+        echo "Moving tag $TAG to latest main commit"
+
+        # Configure git
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Delete old tag locally and remotely
+        git tag -d "$TAG" || true
+        git push origin ":refs/tags/$TAG" || true
+
+        # Create new tag at current HEAD (latest main)
+        git tag "$TAG"
+        git push origin "$TAG"
+
+        echo "✅ Tag $TAG moved to commit: $(git rev-parse HEAD)"
+
+    - name: Find and Publish Draft Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG="${{ steps.version.outputs.tag }}"
+
+        echo "Looking for draft release with tag: $TAG"
+
+        # Get release ID for the draft release with this tag
+        RELEASE_ID=$(gh api repos/${{ github.repository }}/releases \
+          --jq ".[] | select(.tag_name == \"$TAG\" and .draft == true) | .id")
+
+        if [ -z "$RELEASE_ID" ]; then
+          echo "❌ No draft release found for tag $TAG"
+          echo "Available releases:"
+          gh api repos/${{ github.repository }}/releases --jq '.[] | "\(.tag_name) (draft: \(.draft))"'
+          exit 1
+        fi
+
+        echo "Found draft release ID: $RELEASE_ID"
+
+        # Publish the release (change draft from true to false)
+        gh api repos/${{ github.repository }}/releases/$RELEASE_ID \
+          -X PATCH \
+          -f draft=false
+
+        echo "✅ Successfully published release $TAG"
+        echo "🎉 Release URL: https://github.com/${{ github.repository }}/releases/tag/$TAG"
