@@ -2,10 +2,13 @@ package syncer
 
 import (
 	"testing"
+	"time"
 )
 
 // TestResolveConflicts tests the conflict resolution logic
 func TestResolveConflicts(t *testing.T) {
+	baseTime := time.Now()
+
 	tests := []struct {
 		name      string
 		files     []FileInfo
@@ -15,7 +18,7 @@ func TestResolveConflicts(t *testing.T) {
 		{
 			name: "No conflicts - single file",
 			files: []FileInfo{
-				{RelPath: "file1.txt", AbsPath: "/path/to/file1.txt", Project: "project1", Priority: 1},
+				{RelPath: "file1.txt", AbsPath: "/path/to/file1.txt", Project: "project1", Priority: 1, ModTime: baseTime},
 			},
 			wantCount: 1,
 			conflicts: 0,
@@ -23,8 +26,8 @@ func TestResolveConflicts(t *testing.T) {
 		{
 			name: "No conflicts - different files",
 			files: []FileInfo{
-				{RelPath: "file1.txt", AbsPath: "/path/to/file1.txt", Project: "project1", Priority: 1},
-				{RelPath: "file2.txt", AbsPath: "/path/to/file2.txt", Project: "project2", Priority: 2},
+				{RelPath: "file1.txt", AbsPath: "/path/to/file1.txt", Project: "project1", Priority: 1, ModTime: baseTime},
+				{RelPath: "file2.txt", AbsPath: "/path/to/file2.txt", Project: "project2", Priority: 2, ModTime: baseTime},
 			},
 			wantCount: 2,
 			conflicts: 0,
@@ -32,8 +35,8 @@ func TestResolveConflicts(t *testing.T) {
 		{
 			name: "Conflict - same file different projects",
 			files: []FileInfo{
-				{RelPath: "config.yaml", AbsPath: "/project1/config.yaml", Project: "project1", Priority: 1},
-				{RelPath: "config.yaml", AbsPath: "/project2/config.yaml", Project: "project2", Priority: 2},
+				{RelPath: "config.yaml", AbsPath: "/project1/config.yaml", Project: "project1", Priority: 1, ModTime: baseTime},
+				{RelPath: "config.yaml", AbsPath: "/project2/config.yaml", Project: "project2", Priority: 2, ModTime: baseTime},
 			},
 			wantCount: 1,
 			conflicts: 1,
@@ -41,10 +44,10 @@ func TestResolveConflicts(t *testing.T) {
 		{
 			name: "Multiple conflicts",
 			files: []FileInfo{
-				{RelPath: "config.yaml", AbsPath: "/project1/config.yaml", Project: "project1", Priority: 1},
-				{RelPath: "config.yaml", AbsPath: "/project2/config.yaml", Project: "project2", Priority: 2},
-				{RelPath: "hooks/pre-commit", AbsPath: "/project1/hooks/pre-commit", Project: "project1", Priority: 1},
-				{RelPath: "hooks/pre-commit", AbsPath: "/project3/hooks/pre-commit", Project: "project3", Priority: 3},
+				{RelPath: "config.yaml", AbsPath: "/project1/config.yaml", Project: "project1", Priority: 1, ModTime: baseTime},
+				{RelPath: "config.yaml", AbsPath: "/project2/config.yaml", Project: "project2", Priority: 2, ModTime: baseTime},
+				{RelPath: "hooks/pre-commit", AbsPath: "/project1/hooks/pre-commit", Project: "project1", Priority: 1, ModTime: baseTime},
+				{RelPath: "hooks/pre-commit", AbsPath: "/project3/hooks/pre-commit", Project: "project3", Priority: 3, ModTime: baseTime},
 			},
 			wantCount: 2,
 			conflicts: 2,
@@ -69,12 +72,14 @@ func TestResolveConflicts(t *testing.T) {
 	}
 }
 
-// TestResolveConflict_Priority tests that highest priority wins
-func TestResolveConflict_Priority(t *testing.T) {
+// TestResolveConflict_Timestamp tests that newest file wins
+func TestResolveConflict_Timestamp(t *testing.T) {
+	baseTime := time.Now()
+
 	files := []FileInfo{
-		{RelPath: "test.txt", AbsPath: "/project3/test.txt", Project: "project3", Priority: 3},
-		{RelPath: "test.txt", AbsPath: "/project1/test.txt", Project: "project1", Priority: 1},
-		{RelPath: "test.txt", AbsPath: "/project2/test.txt", Project: "project2", Priority: 2},
+		{RelPath: "test.txt", AbsPath: "/project3/test.txt", Project: "project3", Priority: 3, ModTime: baseTime.Add(-2 * time.Hour)},
+		{RelPath: "test.txt", AbsPath: "/project1/test.txt", Project: "project1", Priority: 1, ModTime: baseTime.Add(-1 * time.Hour)},
+		{RelPath: "test.txt", AbsPath: "/project2/test.txt", Project: "project2", Priority: 2, ModTime: baseTime}, // Newest
 	}
 
 	resolved, conflicts, err := ResolveConflicts(files)
@@ -90,9 +95,48 @@ func TestResolveConflict_Priority(t *testing.T) {
 		t.Fatalf("Expected 1 conflict, got %d", len(conflicts))
 	}
 
-	// Project1 with priority 1 should win
+	// Project2 with newest timestamp should win
+	if resolved[0].Source != "project2" {
+		t.Errorf("Expected winner to be project2 (newest), got %s", resolved[0].Source)
+	}
+
+	// Check conflict info
+	conflict := conflicts[0]
+	if conflict.Resolved.Project != "project2" {
+		t.Errorf("Conflict resolved project should be project2, got %s", conflict.Resolved.Project)
+	}
+
+	if len(conflict.Candidates) != 3 {
+		t.Errorf("Expected 3 candidates in conflict, got %d", len(conflict.Candidates))
+	}
+}
+
+// TestResolveConflict_PriorityFallback tests that priority is used when timestamps are equal
+func TestResolveConflict_PriorityFallback(t *testing.T) {
+	baseTime := time.Now()
+
+	files := []FileInfo{
+		{RelPath: "test.txt", AbsPath: "/project3/test.txt", Project: "project3", Priority: 3, ModTime: baseTime},
+		{RelPath: "test.txt", AbsPath: "/project1/test.txt", Project: "project1", Priority: 1, ModTime: baseTime},
+		{RelPath: "test.txt", AbsPath: "/project2/test.txt", Project: "project2", Priority: 2, ModTime: baseTime},
+	}
+
+	resolved, conflicts, err := ResolveConflicts(files)
+	if err != nil {
+		t.Fatalf("ResolveConflicts failed: %v", err)
+	}
+
+	if len(resolved) != 1 {
+		t.Fatalf("Expected 1 resolved file, got %d", len(resolved))
+	}
+
+	if len(conflicts) != 1 {
+		t.Fatalf("Expected 1 conflict, got %d", len(conflicts))
+	}
+
+	// When timestamps are equal, project1 with priority 1 should win
 	if resolved[0].Source != "project1" {
-		t.Errorf("Expected winner to be project1, got %s", resolved[0].Source)
+		t.Errorf("Expected winner to be project1 (highest priority), got %s", resolved[0].Source)
 	}
 
 	if resolved[0].Priority != 1 {
@@ -120,10 +164,12 @@ func TestResolveConflicts_EmptyInput(t *testing.T) {
 
 // TestGroupFilesByRelPath tests file grouping
 func TestGroupFilesByRelPath(t *testing.T) {
+	baseTime := time.Now()
+
 	files := []FileInfo{
-		{RelPath: "file1.txt", AbsPath: "/p1/file1.txt", Project: "p1", Priority: 1},
-		{RelPath: "file2.txt", AbsPath: "/p1/file2.txt", Project: "p1", Priority: 1},
-		{RelPath: "file1.txt", AbsPath: "/p2/file1.txt", Project: "p2", Priority: 2},
+		{RelPath: "file1.txt", AbsPath: "/p1/file1.txt", Project: "p1", Priority: 1, ModTime: baseTime},
+		{RelPath: "file2.txt", AbsPath: "/p1/file2.txt", Project: "p1", Priority: 1, ModTime: baseTime},
+		{RelPath: "file1.txt", AbsPath: "/p2/file1.txt", Project: "p2", Priority: 2, ModTime: baseTime},
 	}
 
 	grouped := GroupFilesByRelPath(files)
@@ -143,6 +189,8 @@ func TestGroupFilesByRelPath(t *testing.T) {
 
 // TestGetConflictSummary tests conflict summary generation
 func TestGetConflictSummary(t *testing.T) {
+	baseTime := time.Now()
+
 	tests := []struct {
 		name      string
 		conflicts []Conflict
@@ -161,6 +209,7 @@ func TestGetConflictSummary(t *testing.T) {
 					Resolved: FileInfo{
 						Project:  "project1",
 						Priority: 1,
+						ModTime:  baseTime,
 					},
 				},
 			},
@@ -174,6 +223,7 @@ func TestGetConflictSummary(t *testing.T) {
 					Resolved: FileInfo{
 						Project:  "project1",
 						Priority: 1,
+						ModTime:  baseTime,
 					},
 				},
 				{
@@ -181,6 +231,7 @@ func TestGetConflictSummary(t *testing.T) {
 					Resolved: FileInfo{
 						Project:  "project2",
 						Priority: 2,
+						ModTime:  baseTime,
 					},
 				},
 			},
