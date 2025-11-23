@@ -1,0 +1,89 @@
+name: Version Update from Draft Release
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-version:
+    # Only run for draft releases
+    if: github.event.release.draft == true
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Extract version from release tag
+      id: version
+      run: |
+        TAG="${{ github.event.release.tag_name }}"
+        VERSION="${TAG#v}"
+
+        # Validate version format
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Invalid version format: $VERSION. Must be x.y.z"
+          exit 1
+        fi
+
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION"
+
+    - name: Update version in cmd/root.go
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        sed -i "s/Version: \".*\"/Version: \"$VERSION\"/" cmd/root.go
+
+        # Verify the change
+        echo "Updated version in cmd/root.go:"
+        grep "Version:" cmd/root.go
+
+    - name: Verify build
+      run: |
+        go build -v -o dot-claude-sync
+        ./dot-claude-sync --version
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: bump version to ${{ steps.version.outputs.version }}"
+        branch: "auto/version-${{ steps.version.outputs.version }}"
+        base: main
+        delete-branch: true
+        title: "chore: bump version to ${{ steps.version.outputs.version }}"
+        body: |
+          ## Version Update for Release
+
+          This PR updates the CLI version to `${{ steps.version.outputs.version }}` for the draft release.
+
+          ### Changes
+          - Updated `cmd/root.go` version field to `${{ steps.version.outputs.version }}`
+
+          ### Release Information
+          - **Release**: ${{ github.event.release.html_url }}
+          - **Tag**: `${{ github.event.release.tag_name }}`
+
+          ### Workflow
+          1. Draft release was created: ${{ github.event.release.html_url }}
+          2. This PR was automatically created
+          3. **After merging, the draft release will be automatically published**
+
+          **Note**: This PR was automatically created by the version update workflow.
+        labels: |
+          automated
+          version-update
+        assignees: ${{ github.actor }}
