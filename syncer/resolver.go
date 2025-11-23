@@ -3,6 +3,7 @@ package syncer
 import (
 	"fmt"
 	"sort"
+	"time"
 )
 
 // ResolvedFile represents a file after conflict resolution
@@ -74,21 +75,42 @@ func ResolveConflicts(files []FileInfo) ([]ResolvedFile, []Conflict, error) {
 	return resolved, conflicts, nil
 }
 
-// resolveConflict selects the file with the highest priority (lowest priority number)
+// resolveConflict selects the file based on modification time (newest wins)
+// If multiple files have the same timestamp (within 1 second), priority is used as fallback
 func resolveConflict(candidates []FileInfo) FileInfo {
 	if len(candidates) == 0 {
 		panic("resolveConflict called with empty candidates")
 	}
 
-	// Find the candidate with the lowest priority number (highest priority)
-	winner := candidates[0]
+	// Find the candidate with the latest modification time
+	latest := candidates[0]
 	for _, candidate := range candidates[1:] {
-		if candidate.Priority < winner.Priority {
-			winner = candidate
+		if candidate.ModTime.After(latest.ModTime) {
+			latest = candidate
 		}
 	}
 
-	return winner
+	// Find all candidates with timestamps within 1 second of the latest
+	threshold := latest.ModTime.Add(-1 * time.Second)
+	var recent []FileInfo
+	for _, candidate := range candidates {
+		if candidate.ModTime.After(threshold) || candidate.ModTime.Equal(latest.ModTime) {
+			recent = append(recent, candidate)
+		}
+	}
+
+	// If multiple files have similar timestamps, use priority as fallback
+	if len(recent) > 1 {
+		winner := recent[0]
+		for _, candidate := range recent[1:] {
+			if candidate.Priority < winner.Priority {
+				winner = candidate
+			}
+		}
+		return winner
+	}
+
+	return latest
 }
 
 // GetConflictSummary returns a formatted summary of conflicts

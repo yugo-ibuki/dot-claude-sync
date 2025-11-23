@@ -5,16 +5,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/yugo-ibuki/dot-claude-sync/config"
 )
 
 // FileInfo represents information about a collected file
 type FileInfo struct {
-	RelPath  string // Relative path from .claude directory
-	AbsPath  string // Absolute path to the file
-	Project  string // Project alias
-	Priority int    // Project priority
+	RelPath  string    // Relative path from .claude directory
+	AbsPath  string    // Absolute path to the file
+	Project  string    // Project alias
+	Priority int       // Project priority
+	ModTime  time.Time // File modification time
 }
 
 // CollectFiles collects all files from .claude directories across projects
@@ -92,6 +94,7 @@ func collectFromProject(project config.ProjectPath) ([]FileInfo, error) {
 			AbsPath:  path,
 			Project:  project.Alias,
 			Priority: project.Priority,
+			ModTime:  info.ModTime(),
 		})
 
 		return nil
