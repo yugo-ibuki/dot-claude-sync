@@ -457,6 +457,18 @@ Summary: 2 files moved
 
 ### 最新の変更履歴
 
+**2025-11-29**
+- ✅ 優先度無視機能 - `--folders`フラグを追加
+  - syncer/resolver.goを修正: ResolveConflicts()に folderFilter パラメータを追加
+  - 指定フォルダのファイルは優先度を無視して修正時刻のみで競合解決
+  - 複数フォルダのサポート: `--folders prompts,commands`
+  - syncer/resolver_test.goに3つのテストケースを追加
+    - TestResolveConflicts_WithFolderFilter: 単一フォルダのフィルタリング
+    - TestResolveConflicts_FolderFilterMultipleFolders: 複数フォルダのテスト
+    - TestIsFileInFilteredFolder: フォルダマッチングロジックのテスト
+  - cmd/push.goに--foldersフラグを追加
+  - 全テスト合格: syncer, config, utils パッケージ
+
 **2025-11-22**
 - ✅ .github/workflows/version-update.yml追加（バージョン自動更新ワークフロー実装）
   - git tagのpushでトリガー（例: `v0.2.0`）

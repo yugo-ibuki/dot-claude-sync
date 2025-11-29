@@ -92,6 +92,14 @@ dcs push web-projects
 --force           # Skip confirmation prompts
 ```
 
+### Push Command Options
+
+```bash
+--folders <list>  # Comma-separated folders to sync (ignoring priority)
+                  # e.g., --folders prompts,commands
+                  # Files in these folders use modification time only for conflict resolution
+```
+
 ## Common Use Cases
 
 ### Auto-Detect Git Worktrees
@@ -126,6 +134,18 @@ dcs rm web-projects prompts/old.md --dry-run
 
 # Execute deletion
 dcs rm web-projects prompts/old.md
+```
+
+### Sync Specific Folders (Ignoring Priority)
+
+```bash
+# Sync only 'prompts' and 'commands' folders using modification time
+# (ignoring priority rules) - useful when you want the newest files
+# for specific folders regardless of project priority
+dcs push web-projects --folders prompts,commands
+
+# Verify changes before syncing
+dcs push web-projects --folders prompts --dry-run
 ```
 
 ### Manage Configuration

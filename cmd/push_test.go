@@ -116,7 +116,7 @@ func TestPushWorkflow(t *testing.T) {
 			},
 		}
 
-		resolved, conflicts, err := syncer.ResolveConflicts(files)
+		resolved, conflicts, err := syncer.ResolveConflicts(files, nil)
 		if err != nil {
 			t.Fatalf("ResolveConflicts failed: %v", err)
 		}

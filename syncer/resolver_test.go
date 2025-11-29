@@ -56,7 +56,7 @@ func TestResolveConflicts(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resolved, conflicts, err := ResolveConflicts(tt.files)
+			resolved, conflicts, err := ResolveConflicts(tt.files, nil)
 			if err != nil {
 				t.Fatalf("ResolveConflicts failed: %v", err)
 			}
@@ -82,7 +82,7 @@ func TestResolveConflict_Timestamp(t *testing.T) {
 		{RelPath: "test.txt", AbsPath: "/project2/test.txt", Project: "project2", Priority: 2, ModTime: baseTime}, // Newest
 	}
 
-	resolved, conflicts, err := ResolveConflicts(files)
+	resolved, conflicts, err := ResolveConflicts(files, nil)
 	if err != nil {
 		t.Fatalf("ResolveConflicts failed: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestResolveConflict_PriorityFallback(t *testing.T) {
 		{RelPath: "test.txt", AbsPath: "/project2/test.txt", Project: "project2", Priority: 2, ModTime: baseTime},
 	}
 
-	resolved, conflicts, err := ResolveConflicts(files)
+	resolved, conflicts, err := ResolveConflicts(files, nil)
 	if err != nil {
 		t.Fatalf("ResolveConflicts failed: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestResolveConflict_PriorityFallback(t *testing.T) {
 
 // TestResolveConflicts_EmptyInput tests error handling for empty input
 func TestResolveConflicts_EmptyInput(t *testing.T) {
-	_, _, err := ResolveConflicts([]FileInfo{})
+	_, _, err := ResolveConflicts([]FileInfo{}, nil)
 	if err == nil {
 		t.Error("Expected error for empty input, got nil")
 	}
@@ -342,5 +342,126 @@ func TestGetResolvedCount(t *testing.T) {
 	}
 	if GetResolvedCount(resolved) != 3 {
 		t.Error("Expected 3 resolved files")
+	}
+}
+
+// TestResolveConflicts_WithFolderFilter tests that folder filter ignores priority
+func TestResolveConflicts_WithFolderFilter(t *testing.T) {
+	baseTime := time.Now()
+
+	files := []FileInfo{
+		{RelPath: "prompts/auth.md", AbsPath: "/project1/prompts/auth.md", Project: "project1", Priority: 1, ModTime: baseTime.Add(-1 * time.Hour)},
+		{RelPath: "prompts/auth.md", AbsPath: "/project2/prompts/auth.md", Project: "project2", Priority: 2, ModTime: baseTime}, // Newer but lower priority
+		{RelPath: "config.yaml", AbsPath: "/project1/config.yaml", Project: "project1", Priority: 1, ModTime: baseTime},
+		{RelPath: "config.yaml", AbsPath: "/project2/config.yaml", Project: "project2", Priority: 2, ModTime: baseTime.Add(-1 * time.Hour)},
+	}
+
+	// Test with prompts folder in filter - should use project2 (newer) despite lower priority
+	resolved, _, err := ResolveConflicts(files, []string{"prompts"})
+	if err != nil {
+		t.Fatalf("ResolveConflicts failed: %v", err)
+	}
+
+	if len(resolved) != 2 {
+		t.Fatalf("Expected 2 resolved files, got %d", len(resolved))
+	}
+
+	// Find the prompts/auth.md resolution
+	var promptsResolution *ResolvedFile
+	for i := range resolved {
+		if resolved[i].RelPath == "prompts/auth.md" {
+			promptsResolution = &resolved[i]
+			break
+		}
+	}
+
+	if promptsResolution == nil {
+		t.Fatal("Expected prompts/auth.md in resolved files")
+	}
+
+	// In filtered folder, project2 (newer) should win despite priority 2
+	if promptsResolution.Source != "project2" {
+		t.Errorf("Expected prompts/auth.md from project2 (newest), got %s", promptsResolution.Source)
+	}
+
+	// For config.yaml (not in filter), project1 should win (highest priority)
+	var configResolution *ResolvedFile
+	for i := range resolved {
+		if resolved[i].RelPath == "config.yaml" {
+			configResolution = &resolved[i]
+			break
+		}
+	}
+
+	if configResolution == nil {
+		t.Fatal("Expected config.yaml in resolved files")
+	}
+
+	if configResolution.Source != "project1" {
+		t.Errorf("Expected config.yaml from project1 (highest priority), got %s", configResolution.Source)
+	}
+}
+
+// TestResolveConflicts_FolderFilterMultipleFolders tests multiple folders in filter
+func TestResolveConflicts_FolderFilterMultipleFolders(t *testing.T) {
+	baseTime := time.Now()
+
+	files := []FileInfo{
+		{RelPath: "prompts/test.md", AbsPath: "/p1/prompts/test.md", Project: "p1", Priority: 1, ModTime: baseTime.Add(-1 * time.Hour)},
+		{RelPath: "prompts/test.md", AbsPath: "/p2/prompts/test.md", Project: "p2", Priority: 2, ModTime: baseTime},
+		{RelPath: "commands/sync.sh", AbsPath: "/p1/commands/sync.sh", Project: "p1", Priority: 1, ModTime: baseTime},
+		{RelPath: "commands/sync.sh", AbsPath: "/p2/commands/sync.sh", Project: "p2", Priority: 2, ModTime: baseTime.Add(-1 * time.Hour)},
+		{RelPath: "config.yaml", AbsPath: "/p1/config.yaml", Project: "p1", Priority: 1, ModTime: baseTime},
+		{RelPath: "config.yaml", AbsPath: "/p2/config.yaml", Project: "p2", Priority: 2, ModTime: baseTime.Add(-1 * time.Hour)},
+	}
+
+	resolved, _, err := ResolveConflicts(files, []string{"prompts", "commands"})
+	if err != nil {
+		t.Fatalf("ResolveConflicts failed: %v", err)
+	}
+
+	if len(resolved) != 3 {
+		t.Fatalf("Expected 3 resolved files, got %d", len(resolved))
+	}
+
+	// Check: prompts should be from p2 (newer, in filter)
+	for _, r := range resolved {
+		if r.RelPath == "prompts/test.md" && r.Source != "p2" {
+			t.Errorf("prompts/test.md should be from p2 (newest in filtered folder), got %s", r.Source)
+		}
+		// Check: commands should be from p1 (newer in p1, in filter)
+		if r.RelPath == "commands/sync.sh" && r.Source != "p1" {
+			t.Errorf("commands/sync.sh should be from p1 (newest in filtered folder), got %s", r.Source)
+		}
+		// Check: config should be from p1 (highest priority, not in filter)
+		if r.RelPath == "config.yaml" && r.Source != "p1" {
+			t.Errorf("config.yaml should be from p1 (highest priority, not filtered), got %s", r.Source)
+		}
+	}
+}
+
+// TestIsFileInFilteredFolder tests the helper function
+func TestIsFileInFilteredFolder(t *testing.T) {
+	tests := []struct {
+		relPath      string
+		folderFilter []string
+		expected     bool
+	}{
+		{"prompts/auth.md", []string{"prompts"}, true},
+		{"prompts/deep/auth.md", []string{"prompts"}, true},
+		{"config.yaml", []string{"prompts"}, false},
+		{"commands/sync.sh", []string{"prompts", "commands"}, true},
+		{"hooks/pre-commit", []string{"prompts", "commands"}, false},
+		{"prompts", []string{"prompts"}, true}, // Exact folder match
+		{"", []string{}, false}, // Empty filter
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.relPath, func(t *testing.T) {
+			result := isFileInFilteredFolder(tt.relPath, tt.folderFilter)
+			if result != tt.expected {
+				t.Errorf("isFileInFilteredFolder(%q, %v) = %v, want %v", tt.relPath, tt.folderFilter, result, tt.expected)
+			}
+		})
 	}
 }
