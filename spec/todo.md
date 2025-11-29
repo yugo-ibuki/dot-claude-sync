@@ -457,6 +457,16 @@ Summary: 2 files moved
 
 ### 最新の変更履歴
 
+**2025-11-29**
+- ✅ config/config.go - パス正規化機能追加（.claude自動追記）
+  - normalizeClaudePath() 関数追加：パスが.claudeで終わらない場合は自動追記
+  - GetProjectPaths() を更新して normalizeClaudePath() を使用
+  - ユーザーは `~/projects/app` または `~/projects/app/.claude` の両方の形式で指定可能
+  - validateClaudePath() 削除（旧版）
+- ✅ config/config_test.go - テスト更新
+  - TestNormalizeClaudePath() 追加（パス正規化のテスト）
+  - TestGetProjectPathsValidation() 更新（自動追記動作のテスト）
+
 **2025-11-22**
 - ✅ .github/workflows/version-update.yml追加（バージョン自動更新ワークフロー実装）
   - git tagのpushでトリガー（例: `v0.2.0`）
