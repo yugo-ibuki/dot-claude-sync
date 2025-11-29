@@ -87,7 +87,8 @@ func SyncFiles(resolved []ResolvedFile, projects []config.ProjectPath, dryRun bo
 		for destProject, infos := range byDestProject {
 			fmt.Printf("  %s:\n", destProject)
 			for _, info := range infos {
-				fmt.Printf("    - %s (from %s)\n", info.RelPath, info.SourceProject)
+				// Color the file path in red and the source in yellow
+				fmt.Printf("    - \033[31m%s\033[0m (from \033[33m%s\033[0m)\n", info.RelPath, info.SourceProject)
 			}
 		}
 
@@ -134,9 +135,9 @@ func syncToProject(resolved []ResolvedFile, project config.ProjectPath, dryRun b
 		if dryRun {
 			if verbose {
 				if fileExists {
-					fmt.Printf("  [DRY RUN] Would overwrite: %s\n", file.RelPath)
+					fmt.Printf("  [DRY RUN] Would overwrite: \033[31m%s\033[0m\n", file.RelPath)
 				} else {
-					fmt.Printf("  [DRY RUN] Would create: %s\n", file.RelPath)
+					fmt.Printf("  [DRY RUN] Would create: \033[32m%s\033[0m\n", file.RelPath)
 				}
 			}
 
@@ -161,12 +162,12 @@ func syncToProject(resolved []ResolvedFile, project config.ProjectPath, dryRun b
 		if fileExists {
 			result.Overwritten++
 			if verbose {
-				fmt.Printf("  ✓ Overwritten: %s\n", file.RelPath)
+				fmt.Printf("  ✓ Overwritten: \033[31m%s\033[0m\n", file.RelPath)
 			}
 		} else {
 			result.NewFiles++
 			if verbose {
-				fmt.Printf("  ✓ Created: %s\n", file.RelPath)
+				fmt.Printf("  ✓ Created: \033[32m%s\033[0m\n", file.RelPath)
 			}
 		}
 	}
