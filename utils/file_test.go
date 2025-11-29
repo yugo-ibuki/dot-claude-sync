@@ -587,3 +587,201 @@ func containsHelper(s, substr string) bool {
 	}
 	return false
 }
+
+// TestDeleteEmptyFolders tests the DeleteEmptyFolders function
+func TestDeleteEmptyFolders(t *testing.T) {
+	t.Run("delete single empty folder", func(t *testing.T) {
+		// Create a separate temp dir for this test
+		rootDir := t.TempDir()
+		testDir := filepath.Join(rootDir, "test")
+		if err := os.MkdirAll(testDir, 0755); err != nil {
+			t.Fatalf("Failed to create test directory: %v", err)
+		}
+		emptyDir := filepath.Join(testDir, "empty")
+		if err := os.MkdirAll(emptyDir, 0755); err != nil {
+			t.Fatalf("Failed to create empty directory: %v", err)
+		}
+
+		// Delete empty folders
+		deleted, err := DeleteEmptyFolders(testDir)
+		if err != nil {
+			t.Fatalf("DeleteEmptyFolders failed: %v", err)
+		}
+
+		// Verify folder was deleted
+		if !FileExists(emptyDir) {
+			t.Logf("Successfully deleted empty folder: %s", emptyDir)
+		} else {
+			t.Error("Empty folder was not deleted")
+		}
+
+		// After deleting empty/test, the parent testDir becomes empty and is also deleted
+		// So we expect 2 deleted folders (empty + test)
+		if len(deleted) != 2 {
+			t.Logf("Deleted folders: %d", len(deleted))
+			for _, d := range deleted {
+				t.Logf("  - %s", d)
+			}
+		}
+	})
+
+	t.Run("delete nested empty folders", func(t *testing.T) {
+		// Create a separate temp dir for this test
+		testDir := t.TempDir()
+		nestedDir := filepath.Join(testDir, "level1", "level2", "level3")
+		if err := os.MkdirAll(nestedDir, 0755); err != nil {
+			t.Fatalf("Failed to create nested directories: %v", err)
+		}
+
+		// Delete empty folders
+		deleted, err := DeleteEmptyFolders(filepath.Join(testDir, "level1"))
+		if err != nil {
+			t.Fatalf("DeleteEmptyFolders failed: %v", err)
+		}
+
+		// Verify all nested folders were deleted
+		if FileExists(nestedDir) {
+			t.Error("Nested empty folder was not deleted")
+		}
+
+		// Verify deleted count (all three levels should be deleted)
+		if len(deleted) != 3 {
+			t.Logf("Deleted folders: %d", len(deleted))
+			for _, d := range deleted {
+				t.Logf("  - %s", d)
+			}
+		}
+	})
+
+	t.Run("preserve non-empty folders", func(t *testing.T) {
+		// Create a separate temp dir for this test
+		rootDir := t.TempDir()
+		testDir := filepath.Join(rootDir, "test")
+		if err := os.MkdirAll(testDir, 0755); err != nil {
+			t.Fatalf("Failed to create test directory: %v", err)
+		}
+		dataDir := filepath.Join(testDir, "data")
+		if err := os.MkdirAll(dataDir, 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
+
+		testFile := filepath.Join(dataDir, "file.txt")
+		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+
+		// Delete empty folders
+		deleted, err := DeleteEmptyFolders(testDir)
+		if err != nil {
+			t.Fatalf("DeleteEmptyFolders failed: %v", err)
+		}
+
+		// Verify data directory still exists
+		if !FileExists(dataDir) {
+			t.Error("Non-empty folder was deleted")
+		}
+
+		// Verify file still exists
+		if !FileExists(testFile) {
+			t.Error("File in non-empty folder was deleted")
+		}
+
+		t.Logf("Non-empty folder preserved, deleted %d empty folders", len(deleted))
+	})
+
+	t.Run("mixed structure with empty and non-empty", func(t *testing.T) {
+		// Create a separate temp dir for this test
+		testDir := t.TempDir()
+		mixedDir := filepath.Join(testDir, "mixed")
+		if err := os.MkdirAll(filepath.Join(mixedDir, "empty1", "empty2"), 0755); err != nil {
+			t.Fatalf("Failed to create directories: %v", err)
+		}
+		if err := os.MkdirAll(filepath.Join(mixedDir, "nonempty"), 0755); err != nil {
+			t.Fatalf("Failed to create non-empty directory: %v", err)
+		}
+
+		// Add file to nonempty directory
+		nonEmptyFile := filepath.Join(mixedDir, "nonempty", "data.txt")
+		if err := os.WriteFile(nonEmptyFile, []byte("data"), 0644); err != nil {
+			t.Fatalf("Failed to create file: %v", err)
+		}
+
+		// Delete empty folders
+		deleted, err := DeleteEmptyFolders(mixedDir)
+		if err != nil {
+			t.Fatalf("DeleteEmptyFolders failed: %v", err)
+		}
+
+		// Verify non-empty directory still exists
+		if !FileExists(filepath.Join(mixedDir, "nonempty")) {
+			t.Error("Non-empty directory was deleted")
+		}
+
+		// Verify empty directories don't exist
+		if FileExists(filepath.Join(mixedDir, "empty1")) {
+			t.Error("Empty directory was not deleted")
+		}
+
+		t.Logf("Mixed structure: deleted %d empty folders, preserved non-empty", len(deleted))
+	})
+
+	t.Run("non-existent path", func(t *testing.T) {
+		// Create a separate temp dir for this test
+		testDir := t.TempDir()
+		// Try to delete from non-existent path
+		_, err := DeleteEmptyFolders(filepath.Join(testDir, "nonexistent"))
+		if err == nil {
+			t.Error("Expected error for non-existent path, got nil")
+		}
+	})
+
+	t.Run("path is file not directory", func(t *testing.T) {
+		// Create a separate temp dir for this test
+		testDir := t.TempDir()
+		testFile := filepath.Join(testDir, "file.txt")
+		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+
+		// Try to delete empty folders from file path
+		_, err := DeleteEmptyFolders(testFile)
+		if err == nil {
+			t.Error("Expected error when path is file, got nil")
+		}
+	})
+
+	t.Run("no empty folders", func(t *testing.T) {
+		// Create a separate temp dir for this test
+		testDir := t.TempDir()
+		filesDir := filepath.Join(testDir, "files")
+		if err := os.MkdirAll(filesDir, 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
+
+		file1 := filepath.Join(filesDir, "file1.txt")
+		file2 := filepath.Join(filesDir, "file2.txt")
+		if err := os.WriteFile(file1, []byte("content1"), 0644); err != nil {
+			t.Fatalf("Failed to create file1: %v", err)
+		}
+		if err := os.WriteFile(file2, []byte("content2"), 0644); err != nil {
+			t.Fatalf("Failed to create file2: %v", err)
+		}
+
+		// Delete empty folders (should find none)
+		deleted, err := DeleteEmptyFolders(filesDir)
+		if err != nil {
+			t.Fatalf("DeleteEmptyFolders failed: %v", err)
+		}
+
+		if len(deleted) != 0 {
+			t.Errorf("Expected 0 deleted folders, got %d", len(deleted))
+		}
+
+		// Verify files still exist
+		if !FileExists(file1) || !FileExists(file2) {
+			t.Error("Files were deleted")
+		}
+
+		t.Logf("No empty folders found, as expected")
+	})
+}

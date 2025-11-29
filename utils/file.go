@@ -348,3 +348,65 @@ func ValidateAndNormalizePath(path string) (string, error) {
 
 	return normalized, nil
 }
+
+// DeleteEmptyFolders recursively deletes all empty directories in the given path
+// Returns a list of deleted folder paths and any error encountered
+func DeleteEmptyFolders(rootPath string) ([]string, error) {
+	rootPath = expandPath(rootPath)
+
+	if !FileExists(rootPath) {
+		return []string{}, fmt.Errorf("path does not exist: %s", rootPath)
+	}
+
+	if !IsDirectory(rootPath) {
+		return []string{}, fmt.Errorf("path is not a directory: %s", rootPath)
+	}
+
+	var deletedFolders []string
+
+	// Walk the directory tree from bottom up to delete empty directories
+	// We use a post-order traversal to delete children before parents
+	err := deleteEmptyFoldersRecursive(rootPath, &deletedFolders)
+	if err != nil {
+		return deletedFolders, err
+	}
+
+	return deletedFolders, nil
+}
+
+// deleteEmptyFoldersRecursive is a helper function that recursively processes directories
+// It uses post-order traversal (process children before parent) to properly delete empty dirs
+func deleteEmptyFoldersRecursive(dirPath string, deletedFolders *[]string) error {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return fmt.Errorf("failed to read directory %s: %w", dirPath, err)
+	}
+
+	// Process all subdirectories first
+	for _, entry := range entries {
+		if entry.IsDir() {
+			subDirPath := filepath.Join(dirPath, entry.Name())
+			if err := deleteEmptyFoldersRecursive(subDirPath, deletedFolders); err != nil {
+				// Continue processing other directories even if one fails
+				fmt.Fprintf(os.Stderr, "Warning: error processing %s: %v\n", subDirPath, err)
+			}
+		}
+	}
+
+	// After processing subdirectories, check if current directory is empty
+	// Re-read the directory to get updated contents
+	entries, err = os.ReadDir(dirPath)
+	if err != nil {
+		return fmt.Errorf("failed to read directory %s: %w", dirPath, err)
+	}
+
+	if len(entries) == 0 {
+		// Directory is empty, delete it
+		if err := os.RemoveAll(dirPath); err != nil {
+			return fmt.Errorf("failed to delete empty directory %s: %w", dirPath, err)
+		}
+		*deletedFolders = append(*deletedFolders, dirPath)
+	}
+
+	return nil
+}
