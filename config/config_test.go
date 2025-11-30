@@ -3,7 +3,6 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -692,76 +691,73 @@ func TestYAMLRoundTrip(t *testing.T) {
 	})
 }
 
-// TestValidateClaudePath tests path validation
-func TestValidateClaudePath(t *testing.T) {
-	t.Run("valid paths", func(t *testing.T) {
-		validPaths := []string{
-			"/path/to/.claude",
-			"/home/user/project/.claude",
-			"./relative/.claude",
-			".claude",
-			"/path/to/.claude/", // with trailing slash
-		}
+// TestNormalizeClaudePath tests path normalization and auto-appending of .claude
+func TestNormalizeClaudePath(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"/path/to/.claude", "/path/to/.claude"},
+		{"/path/to", "/path/to/.claude"},
+		{"/home/user/project/.claude", "/home/user/project/.claude"},
+		{"/home/user/project", "/home/user/project/.claude"},
+		{"./relative/.claude", "relative/.claude"},
+		{"./relative", "relative/.claude"},
+		{".claude", ".claude"},
+		{"/path/to/.claude/", "/path/to/.claude"},
+	}
 
-		for _, path := range validPaths {
-			if err := validateClaudePath(path); err != nil {
-				t.Errorf("Expected path to be valid, got error for %s: %v", path, err)
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := normalizeClaudePath(tt.input)
+			if result != tt.expected {
+				t.Errorf("normalizeClaudePath(%s) = %s, want %s", tt.input, result, tt.expected)
 			}
-		}
-	})
-
-	t.Run("invalid paths", func(t *testing.T) {
-		invalidPaths := []string{
-			"/path/to/project",
-			"/home/user/.config",
-			"./relative/folder",
-			"/path/to/.claude-sync",
-			".claude-backup",
-		}
-
-		for _, path := range invalidPaths {
-			if err := validateClaudePath(path); err == nil {
-				t.Errorf("Expected path to be invalid, but got no error for %s", path)
-			}
-		}
-	})
+		})
+	}
 }
 
-// TestGetProjectPathsValidation tests path validation in GetProjectPaths
+// TestGetProjectPathsValidation tests path normalization in GetProjectPaths
 func TestGetProjectPathsValidation(t *testing.T) {
-	t.Run("reject invalid paths in map format", func(t *testing.T) {
+	t.Run("auto-append .claude to paths in map format", func(t *testing.T) {
 		group := &Group{
 			Paths: map[string]interface{}{
-				"project-a": "/path/to/project", // invalid - doesn't end with .claude
+				"project-a": "/path/to/project",
 			},
 		}
 
-		_, err := group.GetProjectPaths()
-		if err == nil {
-			t.Error("Expected error for invalid path, got nil")
+		paths, err := group.GetProjectPaths()
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
 		}
-		if err != nil && !strings.Contains(err.Error(), "must end with .claude") {
-			t.Errorf("Expected error message about .claude, got: %v", err)
+		if len(paths) == 0 {
+			t.Fatal("Expected one project path")
+		}
+		if paths[0].Path != "/path/to/project/.claude" {
+			t.Errorf("Expected path to be /path/to/project/.claude, got: %s", paths[0].Path)
 		}
 	})
 
-	t.Run("reject invalid paths in list format", func(t *testing.T) {
+	t.Run("auto-append .claude to paths in list format", func(t *testing.T) {
 		group := &Group{
 			Paths: []interface{}{
-				"/path/to/project", // invalid
+				"/path/to/project",
 			},
 		}
 
-		_, err := group.GetProjectPaths()
-		if err == nil {
-			t.Error("Expected error for invalid path, got nil")
+		paths, err := group.GetProjectPaths()
+		if err != nil {
+			t.Fatalf("Expected no error, got: %v", err)
 		}
-		if err != nil && !strings.Contains(err.Error(), "must end with .claude") {
-			t.Errorf("Expected error message about .claude, got: %v", err)
+		if len(paths) == 0 {
+			t.Fatal("Expected one project path")
+		}
+		if paths[0].Path != "/path/to/project/.claude" {
+			t.Errorf("Expected path to be /path/to/project/.claude, got: %s", paths[0].Path)
 		}
 	})
 
-	t.Run("accept valid paths", func(t *testing.T) {
+	t.Run("accept paths already ending with .claude", func(t *testing.T) {
 		group := &Group{
 			Paths: map[string]interface{}{
 				"project-a": "/path/to/.claude",

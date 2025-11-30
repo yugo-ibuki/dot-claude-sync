@@ -530,6 +530,26 @@ Summary: 2 files moved
 | DeleteEmptyFolders | ✅ | ✅ | 空ディレクトリ削除 |
 | FindDirectoriesWithOnlyEmptyFiles | ✅ | ✅ | 空ファイルのみのディレクトリ検出 |
 
+**2025-11-29**
+- ✅ 優先度無視機能 - `--folders`フラグを追加
+  - syncer/resolver.goを修正: ResolveConflicts()に folderFilter パラメータを追加
+  - 指定フォルダのファイルは優先度を無視して修正時刻のみで競合解決
+  - 複数フォルダのサポート: `--folders prompts,commands`
+  - syncer/resolver_test.goに3つのテストケースを追加
+    - TestResolveConflicts_WithFolderFilter: 単一フォルダのフィルタリング
+    - TestResolveConflicts_FolderFilterMultipleFolders: 複数フォルダのテスト
+    - TestIsFileInFilteredFolder: フォルダマッチングロジックのテスト
+  - cmd/push.goに--foldersフラグを追加
+  - 全テスト合格: syncer, config, utils パッケージ
+- ✅ config/config.go - パス正規化機能追加（.claude自動追記）
+  - normalizeClaudePath() 関数追加：パスが.claudeで終わらない場合は自動追記
+  - GetProjectPaths() を更新して normalizeClaudePath() を使用
+  - ユーザーは `~/projects/app` または `~/projects/app/.claude` の両方の形式で指定可能
+  - validateClaudePath() 削除（旧版）
+- ✅ config/config_test.go - テスト更新
+  - TestNormalizeClaudePath() 追加（パス正規化のテスト）
+  - TestGetProjectPathsValidation() 更新（自動追記動作のテスト）
+
 **2025-11-22**
 - ✅ .github/workflows/version-update.yml追加（バージョン自動更新ワークフロー実装）
   - git tagのpushでトリガー（例: `v0.2.0`）

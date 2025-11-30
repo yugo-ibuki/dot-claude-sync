@@ -3,6 +3,7 @@ package syncer
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -22,7 +23,8 @@ type Conflict struct {
 }
 
 // ResolveConflicts resolves conflicts between files based on priority
-func ResolveConflicts(files []FileInfo) ([]ResolvedFile, []Conflict, error) {
+// folderFilter: list of folder names to resolve by modification time only (ignoring priority)
+func ResolveConflicts(files []FileInfo, folderFilter []string) ([]ResolvedFile, []Conflict, error) {
 	if len(files) == 0 {
 		return nil, nil, fmt.Errorf("no files to resolve")
 	}
@@ -46,7 +48,18 @@ func ResolveConflicts(files []FileInfo) ([]ResolvedFile, []Conflict, error) {
 			})
 		} else {
 			// Conflict - multiple files with same path
-			winner := resolveConflict(candidates)
+			// Check if this file is in a folder that should ignore priority
+			isInFilteredFolder := isFileInFilteredFolder(relPath, folderFilter)
+
+			var winner FileInfo
+			if isInFilteredFolder {
+				// Use modification time only (ignore priority)
+				winner = resolveConflictByModTime(candidates)
+			} else {
+				// Use standard resolution (modification time + priority)
+				winner = resolveConflict(candidates)
+			}
+
 			resolved = append(resolved, ResolvedFile{
 				RelPath:  winner.RelPath,
 				AbsPath:  winner.AbsPath,
@@ -111,6 +124,43 @@ func resolveConflict(candidates []FileInfo) FileInfo {
 	}
 
 	return latest
+}
+
+// resolveConflictByModTime selects the file based on modification time only (ignoring priority)
+// This is used for folders in folderFilter where priority should be ignored
+func resolveConflictByModTime(candidates []FileInfo) FileInfo {
+	if len(candidates) == 0 {
+		panic("resolveConflictByModTime called with empty candidates")
+	}
+
+	// Find the candidate with the latest modification time
+	winner := candidates[0]
+	for _, candidate := range candidates[1:] {
+		if candidate.ModTime.After(winner.ModTime) {
+			winner = candidate
+		}
+	}
+
+	return winner
+}
+
+// isFileInFilteredFolder checks if a file's relative path is in any of the filtered folders
+func isFileInFilteredFolder(relPath string, folderFilter []string) bool {
+	if len(folderFilter) == 0 {
+		return false
+	}
+
+	for _, folder := range folderFilter {
+		// Normalize folder name (remove trailing slashes)
+		folder = strings.TrimSuffix(folder, "/")
+
+		// Check if the file starts with the folder path
+		if relPath == folder || strings.HasPrefix(relPath, folder+"/") {
+			return true
+		}
+	}
+
+	return false
 }
 
 // GetConflictSummary returns a formatted summary of conflicts
