@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -13,13 +14,19 @@ var pushCmd = &cobra.Command{
 	Use:   "push <group>",
 	Short: "Sync .claude files across all projects in a group",
 	Long: `Collect .claude files from all projects in the specified group,
-resolve conflicts based on priority, and distribute to all projects.`,
+resolve conflicts based on priority, and distribute to all projects.
+
+Use --folders to specify which folders to sync, ignoring priority rules
+(files from these folders will be resolved by modification time only).`,
 	Args: cobra.ExactArgs(1),
 	RunE: runPush,
 }
 
+var pushFolders string // comma-separated folder names to sync (ignoring priority)
+
 func init() {
 	rootCmd.AddCommand(pushCmd)
+	pushCmd.Flags().StringVar(&pushFolders, "folders", "", "comma-separated folders to sync (ignoring priority, e.g., 'prompts,commands')")
 }
 
 func runPush(cmd *cobra.Command, args []string) error {
@@ -81,7 +88,17 @@ func runPush(cmd *cobra.Command, args []string) error {
 	// Phase 2: Resolve conflicts
 	fmt.Println("\nResolving conflicts...")
 
-	resolved, conflicts, err := syncer.ResolveConflicts(allFiles)
+	// Parse folder filter
+	var folderFilter []string
+	if pushFolders != "" {
+		folderFilter = strings.Split(pushFolders, ",")
+		for i := range folderFilter {
+			folderFilter[i] = strings.TrimSpace(folderFilter[i])
+		}
+		fmt.Printf("(Folder-based priority override: %v)\n", folderFilter)
+	}
+
+	resolved, conflicts, err := syncer.ResolveConflicts(allFiles, folderFilter)
 	if err != nil {
 		return fmt.Errorf("failed to resolve conflicts: %w", err)
 	}
