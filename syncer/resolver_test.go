@@ -453,7 +453,7 @@ func TestIsFileInFilteredFolder(t *testing.T) {
 		{"commands/sync.sh", []string{"prompts", "commands"}, true},
 		{"hooks/pre-commit", []string{"prompts", "commands"}, false},
 		{"prompts", []string{"prompts"}, true}, // Exact folder match
-		{"", []string{}, false}, // Empty filter
+		{"", []string{}, false},                // Empty filter
 	}
 
 	for _, tt := range tests {
