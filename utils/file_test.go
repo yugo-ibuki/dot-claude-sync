@@ -785,3 +785,146 @@ func TestDeleteEmptyFolders(t *testing.T) {
 		t.Logf("No empty folders found, as expected")
 	})
 }
+
+// TestFindDirectoriesWithOnlyEmptyFiles tests the FindDirectoriesWithOnlyEmptyFiles function
+func TestFindDirectoriesWithOnlyEmptyFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	t.Run("find directory with only empty files", func(t *testing.T) {
+		// Create directory with empty files
+		rootDir := t.TempDir()
+		testDir := filepath.Join(rootDir, "custom-document")
+		emptyDir := filepath.Join(testDir, "empty-dir")
+		if err := os.MkdirAll(emptyDir, 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
+
+		// Create empty files
+		emptyFile1 := filepath.Join(emptyDir, "file1.txt")
+		emptyFile2 := filepath.Join(emptyDir, "file2.txt")
+		if err := os.WriteFile(emptyFile1, []byte(""), 0644); err != nil {
+			t.Fatalf("Failed to create empty file: %v", err)
+		}
+		if err := os.WriteFile(emptyFile2, []byte(""), 0644); err != nil {
+			t.Fatalf("Failed to create empty file: %v", err)
+		}
+
+		// Find directories with only empty files
+		candidates, err := FindDirectoriesWithOnlyEmptyFiles(testDir)
+		if err != nil {
+			t.Fatalf("FindDirectoriesWithOnlyEmptyFiles failed: %v", err)
+		}
+
+		if len(candidates) != 1 {
+			t.Errorf("Expected 1 candidate directory, got %d", len(candidates))
+		}
+
+		if len(candidates) > 0 && candidates[0] != emptyDir {
+			t.Errorf("Expected %s, got %s", emptyDir, candidates[0])
+		}
+	})
+
+	t.Run("skip directory with non-empty files", func(t *testing.T) {
+		// Create directory with mix of empty and non-empty files
+		rootDir := t.TempDir()
+		testDir := filepath.Join(rootDir, "custom-document")
+		mixedDir := filepath.Join(testDir, "mixed-dir")
+		if err := os.MkdirAll(mixedDir, 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
+
+		// Create empty and non-empty files
+		if err := os.WriteFile(filepath.Join(mixedDir, "empty.txt"), []byte(""), 0644); err != nil {
+			t.Fatalf("Failed to create empty file: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mixedDir, "nonempty.txt"), []byte("content"), 0644); err != nil {
+			t.Fatalf("Failed to create non-empty file: %v", err)
+		}
+
+		// Find directories with only empty files
+		candidates, err := FindDirectoriesWithOnlyEmptyFiles(testDir)
+		if err != nil {
+			t.Fatalf("FindDirectoriesWithOnlyEmptyFiles failed: %v", err)
+		}
+
+		if len(candidates) != 0 {
+			t.Errorf("Expected 0 candidate directories, got %d", len(candidates))
+		}
+	})
+
+	t.Run("find nested empty directories", func(t *testing.T) {
+		// Create nested directory structure with only empty subdirectories
+		rootDir := t.TempDir()
+		testDir := filepath.Join(rootDir, "custom-document")
+		nestedDir := filepath.Join(testDir, "nested", "dir", "with", "empty")
+		if err := os.MkdirAll(nestedDir, 0755); err != nil {
+			t.Fatalf("Failed to create nested directory: %v", err)
+		}
+
+		// Find directories with only empty files
+		candidates, err := FindDirectoriesWithOnlyEmptyFiles(testDir)
+		if err != nil {
+			t.Fatalf("FindDirectoriesWithOnlyEmptyFiles failed: %v", err)
+		}
+
+		// Should find the top-level nested directory and all sub-directories that are empty
+		if len(candidates) == 0 {
+			t.Error("Expected to find candidate directories")
+		}
+
+		t.Logf("Found %d candidate directories", len(candidates))
+		for _, c := range candidates {
+			t.Logf("  - %s", c)
+		}
+	})
+
+	t.Run("non-existent path", func(t *testing.T) {
+		// Try to find directories in non-existent path
+		_, err := FindDirectoriesWithOnlyEmptyFiles(filepath.Join(tmpDir, "nonexistent"))
+		if err == nil {
+			t.Error("Expected error for non-existent path, got nil")
+		}
+	})
+
+	t.Run("path is file not directory", func(t *testing.T) {
+		// Create a test file
+		rootDir := t.TempDir()
+		testFile := filepath.Join(rootDir, "file.txt")
+		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+
+		// Try to find directories from file path
+		_, err := FindDirectoriesWithOnlyEmptyFiles(testFile)
+		if err == nil {
+			t.Error("Expected error when path is file, got nil")
+		}
+	})
+
+	t.Run("no candidates found", func(t *testing.T) {
+		// Create directory with non-empty files only
+		rootDir := t.TempDir()
+		testDir := filepath.Join(rootDir, "custom-document")
+		dataDir := filepath.Join(testDir, "data")
+		if err := os.MkdirAll(dataDir, 0755); err != nil {
+			t.Fatalf("Failed to create directory: %v", err)
+		}
+
+		file1 := filepath.Join(dataDir, "file1.txt")
+		if err := os.WriteFile(file1, []byte("content"), 0644); err != nil {
+			t.Fatalf("Failed to create file: %v", err)
+		}
+
+		// Find directories with only empty files
+		candidates, err := FindDirectoriesWithOnlyEmptyFiles(testDir)
+		if err != nil {
+			t.Fatalf("FindDirectoriesWithOnlyEmptyFiles failed: %v", err)
+		}
+
+		if len(candidates) != 0 {
+			t.Errorf("Expected 0 candidate directories, got %d", len(candidates))
+		}
+
+		t.Logf("No candidates found, as expected")
+	})
+}
