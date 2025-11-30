@@ -102,12 +102,10 @@ func (g *Group) GetProjectPaths() ([]ProjectPath, error) {
 			if !ok {
 				return nil, fmt.Errorf("invalid path value for alias '%s'", alias)
 			}
-			if err := validateClaudePath(pathStr); err != nil {
-				return nil, fmt.Errorf("invalid path for alias '%s': %w", alias, err)
-			}
+			normalizedPath := normalizeClaudePath(pathStr)
 			projects = append(projects, ProjectPath{
 				Alias: alias,
-				Path:  pathStr,
+				Path:  normalizedPath,
 			})
 		}
 	case []interface{}:
@@ -117,12 +115,10 @@ func (g *Group) GetProjectPaths() ([]ProjectPath, error) {
 			if !ok {
 				return nil, fmt.Errorf("invalid path value at index %d", i)
 			}
-			if err := validateClaudePath(pathStr); err != nil {
-				return nil, fmt.Errorf("invalid path at index %d: %w", i, err)
-			}
+			normalizedPath := normalizeClaudePath(pathStr)
 			projects = append(projects, ProjectPath{
-				Alias: filepath.Base(pathStr),
-				Path:  pathStr,
+				Alias: filepath.Base(normalizedPath),
+				Path:  normalizedPath,
 			})
 		}
 	default:
@@ -294,15 +290,14 @@ func (c *Config) SetPriority(groupName string, aliases []string) error {
 	return nil
 }
 
-// validateClaudePath validates that a path ends with .claude directory
-func validateClaudePath(path string) error {
-	// Clean the path to handle trailing slashes
+// normalizeClaude ensures path ends with .claude, appending if necessary
+func normalizeClaudePath(path string) string {
 	cleanPath := filepath.Clean(path)
 
-	// Check if the path ends with .claude
+	// If path doesn't end with .claude, append it
 	if !strings.HasSuffix(cleanPath, ".claude") {
-		return fmt.Errorf("path must end with .claude directory, got: %s", path)
+		cleanPath = filepath.Join(cleanPath, ".claude")
 	}
 
-	return nil
+	return cleanPath
 }
