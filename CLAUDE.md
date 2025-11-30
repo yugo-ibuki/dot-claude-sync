@@ -2,30 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## CRITICAL: Git Remote Operations Policy
+## CRITICAL: Git Operations Policy
 
 **NEVER execute the following commands without explicit user instruction:**
+- `git commit` - Do NOT commit changes without explicit user approval
 - `git push`
 - `git push --force`
 - `git push --force-with-lease`
 - `git tag` (with push)
-- Any command that modifies remote repository state
+- Any command that modifies repository state (local or remote)
 
 **Always ask for confirmation before:**
+- Creating local commits (`git commit`)
 - Pushing commits to remote
 - Creating or pushing tags
-- Any operation that affects the remote repository
+- Any operation that affects the repository
 
-**Allowed without confirmation:**
-- Local commits (`git commit`)
-- Staging files (`git add`)
-- Creating local branches
-- Local git operations that don't affect remote
-
-**If asked "did you commit?" or similar:**
-- Answer only about the local commit status
-- Do NOT proceed to push without explicit instruction
-- Ask if the user wants to push
+**Important**: If you modify files, ALWAYS ask the user first before committing. Even if the CLAUDE.md says "allowed without confirmation", follow the user's explicit instruction to NOT commit without asking.
 
 ## Project Overview
 
