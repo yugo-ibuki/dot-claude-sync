@@ -348,3 +348,135 @@ func ValidateAndNormalizePath(path string) (string, error) {
 
 	return normalized, nil
 }
+
+// DeleteEmptyFolders recursively deletes all empty directories in the given path
+// Returns a list of deleted folder paths and any error encountered
+func DeleteEmptyFolders(rootPath string) ([]string, error) {
+	rootPath = expandPath(rootPath)
+
+	if !FileExists(rootPath) {
+		return []string{}, fmt.Errorf("path does not exist: %s", rootPath)
+	}
+
+	if !IsDirectory(rootPath) {
+		return []string{}, fmt.Errorf("path is not a directory: %s", rootPath)
+	}
+
+	var deletedFolders []string
+
+	// Walk the directory tree from bottom up to delete empty directories
+	// We use a post-order traversal to delete children before parents
+	err := deleteEmptyFoldersRecursive(rootPath, &deletedFolders)
+	if err != nil {
+		return deletedFolders, err
+	}
+
+	return deletedFolders, nil
+}
+
+// deleteEmptyFoldersRecursive is a helper function that recursively processes directories
+// It uses post-order traversal (process children before parent) to properly delete empty dirs
+func deleteEmptyFoldersRecursive(dirPath string, deletedFolders *[]string) error {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return fmt.Errorf("failed to read directory %s: %w", dirPath, err)
+	}
+
+	// Process all subdirectories first
+	for _, entry := range entries {
+		if entry.IsDir() {
+			subDirPath := filepath.Join(dirPath, entry.Name())
+			if err := deleteEmptyFoldersRecursive(subDirPath, deletedFolders); err != nil {
+				// Continue processing other directories even if one fails
+				fmt.Fprintf(os.Stderr, "Warning: error processing %s: %v\n", subDirPath, err)
+			}
+		}
+	}
+
+	// After processing subdirectories, check if current directory is empty
+	// Re-read the directory to get updated contents
+	entries, err = os.ReadDir(dirPath)
+	if err != nil {
+		return fmt.Errorf("failed to read directory %s: %w", dirPath, err)
+	}
+
+	if len(entries) == 0 {
+		// Directory is empty, delete it
+		if err := os.RemoveAll(dirPath); err != nil {
+			return fmt.Errorf("failed to delete empty directory %s: %w", dirPath, err)
+		}
+		*deletedFolders = append(*deletedFolders, dirPath)
+	}
+
+	return nil
+}
+
+// FindDirectoriesWithOnlyEmptyFiles finds all directories within rootPath that contain
+// only empty files (0 bytes) and/or empty subdirectories
+// Returns a list of directory paths that should be deleted
+func FindDirectoriesWithOnlyEmptyFiles(rootPath string) ([]string, error) {
+	rootPath = expandPath(rootPath)
+
+	if !FileExists(rootPath) {
+		return []string{}, fmt.Errorf("path does not exist: %s", rootPath)
+	}
+
+	if !IsDirectory(rootPath) {
+		return []string{}, fmt.Errorf("path is not a directory: %s", rootPath)
+	}
+
+	var candidateDirs []string
+
+	// Walk through all directories and check if they contain only empty files
+	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() && path != rootPath {
+			// Check if this directory contains only empty files/dirs
+			if isDirectoryWithOnlyEmptyFiles(path) {
+				candidateDirs = append(candidateDirs, path)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return []string{}, fmt.Errorf("failed to walk directory: %w", err)
+	}
+
+	return candidateDirs, nil
+}
+
+// isDirectoryWithOnlyEmptyFiles checks if a directory contains only empty files
+// and/or empty subdirectories (recursively)
+func isDirectoryWithOnlyEmptyFiles(dirPath string) bool {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return false
+	}
+
+	if len(entries) == 0 {
+		return true // Empty directory
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			// Recursively check subdirectories
+			subDirPath := filepath.Join(dirPath, entry.Name())
+			if !isDirectoryWithOnlyEmptyFiles(subDirPath) {
+				return false
+			}
+		} else {
+			// Check if file is empty
+			info, err := entry.Info()
+			if err != nil || info.Size() != 0 {
+				return false // File is not empty
+			}
+		}
+	}
+
+	return true
+}
