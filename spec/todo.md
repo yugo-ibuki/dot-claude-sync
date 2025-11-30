@@ -463,25 +463,72 @@ Summary: 2 files moved
 
 ### 最新の変更履歴
 
-**2025-11-30**
+**2025-11-30** (Branch: feature/delete-all-empty-folders-and-files)
 - ✅ cmd/clean.go実装（.claude/custom-document内の空ファイル検出・削除コマンド）
   - `FindDirectoriesWithOnlyEmptyFiles()`関数で空ファイルのみのディレクトリを検出
   - `isDirectoryWithOnlyEmptyFiles()`ヘルパー関数で再帰的に検証
   - ユーザーに削除確認を提示するフロー
   - --dry-run, --force, --verboseフラグ対応
   - 確認プロンプト付きの安全な削除機構
+  - 実装3コミット：
+    - c21aa09: created the command to delete the folders with empty files
+    - 5552d13: change to delete the all files including the empty files
+    - 958a9c4: chore: update todo.md with clean command completion
+
 - ✅ utils/file.go拡張（空ファイル関連機能追加）
   - `DeleteEmptyFolders()`関数（既存、改善版）
+    - 再帰的なディレクトリ削除（ボトムアップ方式）
+    - 削除されたフォルダのパスリストを返却
   - `FindDirectoriesWithOnlyEmptyFiles()`関数（新規）
+    - filepath.Walkで全ディレクトリをトラバース
+    - 空ファイル（0バイト）とネストされた空ディレクトリの検出
+    - 候補ディレクトリのリストを返却
   - `isDirectoryWithOnlyEmptyFiles()`ヘルパー関数（新規）
+    - 再帰的に空ファイルのみを含むかチェック
+    - ファイルサイズ確認（info.Size() != 0で判定）
+
 - ✅ テスト追加（utils/file_test.go）
   - `TestFindDirectoriesWithOnlyEmptyFiles()`関数
-  - 6つのテストケース（空ファイルのみ、混合、ネスト、エラーハンドリング）
+  - 6つのテストケース（詳細）：
+    1. 空ファイルのみのディレクトリを検出
+    2. 0バイトでないファイルは除外（正しく機能）
+    3. ネストされた空ディレクトリを検出
+    4. 混合構造（空ファイル + 空サブディレクトリ）を検出
+    5. 非空ファイルを含むディレクトリは候補から除外
+    6. 存在しないパスの場合はエラーを返却
   - 全テスト合格 ✓
+  - テスト実行時のトラブルシューティング：
+    - 初期テスト失敗：親ディレクトリの削除による干渉
+    - 解決方法：テストディレクトリにネストレベルを追加（rootDir → testDir → emptyDir）
+
 - ✅ spec/todo.md更新
-  - cleanコマンドをコア機能として追加
+  - cleanコマンドを100%完了状態に更新
+  - rmコマンド、mvコマンドを100%完了に更新
+  - テストカバレッジを95%に更新
+  - コマンド例にcleanコマンドを追加
   - 全体進捗を90%に更新
   - Phase 2完了を反映
+  - 実装内容の詳細ドキュメント化
+
+#### 実装プロセスの詳細
+
+**Phase 2: Additional Commands** 完了状況
+| 項目 | 状態 | 詳細 |
+|------|------|------|
+| rmコマンド | ✅ 100% | ファイル削除、確認フロー、複数プロジェクト対応 |
+| mvコマンド | ✅ 100% | ファイル移動、リネーム、競合チェック |
+| cleanコマンド | ✅ 100% | 空ファイル検出・削除、安全な確認フロー |
+
+**ユーティリティ関数の完成度**
+| 関数 | 状態 | テスト | 用途 |
+|------|------|--------|------|
+| CopyFile | ✅ | ✅ | ファイルコピー |
+| CopyDir | ✅ | ✅ | ディレクトリ再帰コピー |
+| RemoveFile/Dir | ✅ | ✅ | ファイル/ディレクトリ削除 |
+| MoveFile | ✅ | ✅ | ファイル移動 |
+| FileHash | ✅ | ✅ | 競合検出用ハッシング |
+| DeleteEmptyFolders | ✅ | ✅ | 空ディレクトリ削除 |
+| FindDirectoriesWithOnlyEmptyFiles | ✅ | ✅ | 空ファイルのみのディレクトリ検出 |
 
 **2025-11-22**
 - ✅ .github/workflows/version-update.yml追加（バージョン自動更新ワークフロー実装）
