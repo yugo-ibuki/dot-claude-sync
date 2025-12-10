@@ -236,6 +236,10 @@ groups:
       - main        # Highest priority (rank 1)
       - feature-a   # Rank 2
       # feature-b gets rank 3 (not in priority list)
+    exclude:        # Optional: files to exclude from sync
+      - "*.bak"     # Exclude backup files
+      - "temp/*"    # Exclude temp directory contents
+      - ".DS_Store" # Exclude macOS metadata files
 
 # Option 2: Simple list (order = priority)
 groups:
@@ -243,6 +247,9 @@ groups:
     paths:
       - ~/go/src/project-a/.claude  # Priority 1
       - ~/go/src/project-b/.claude  # Priority 2
+    exclude:
+      - "*.log"
+      - "cache/*"
 ```
 
 ## Key Implementation Patterns

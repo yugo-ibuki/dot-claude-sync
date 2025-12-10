@@ -50,7 +50,7 @@ func TestPushWorkflow(t *testing.T) {
 		}
 
 		// Collect files
-		collected, err := syncer.CollectFiles(projects)
+		collected, err := syncer.CollectFiles(projects, nil)
 		if err != nil {
 			t.Fatalf("CollectFiles failed: %v", err)
 		}
@@ -329,7 +329,7 @@ func TestPushWorkflow(t *testing.T) {
 			{Alias: "project2", Path: project2, Priority: 2},
 		}
 
-		collected, err := syncer.CollectFiles(projects)
+		collected, err := syncer.CollectFiles(projects, nil)
 		if err != nil {
 			t.Fatalf("CollectFiles failed: %v", err)
 		}
@@ -398,7 +398,7 @@ func TestPushErrorCases(t *testing.T) {
 		}
 
 		// Should return error when no files found
-		_, err := syncer.CollectFiles(projects)
+		_, err := syncer.CollectFiles(projects, nil)
 		if err == nil {
 			t.Error("Expected error when no files to collect, got nil")
 		}
@@ -412,7 +412,7 @@ func TestPushErrorCases(t *testing.T) {
 		}
 
 		// Should handle gracefully (warning but continue)
-		_, err := syncer.CollectFiles(projects)
+		_, err := syncer.CollectFiles(projects, nil)
 		if err == nil {
 			t.Error("Expected error for non-existent directory")
 		}

@@ -57,10 +57,15 @@ func runPush(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 	}
 
+	// Show exclude patterns if configured
+	if len(group.Exclude) > 0 {
+		fmt.Printf("Exclude patterns: %v\n", group.Exclude)
+	}
+
 	// Phase 1: Collect files
 	fmt.Printf("Collecting files from group '%s'...\n", groupName)
 
-	allFiles, err := syncer.CollectFiles(projects)
+	allFiles, err := syncer.CollectFiles(projects, group.Exclude)
 	if err != nil {
 		return fmt.Errorf("failed to collect files: %w", err)
 	}

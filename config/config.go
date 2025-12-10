@@ -18,6 +18,7 @@ type Config struct {
 type Group struct {
 	Paths    interface{} `yaml:"paths"`    // Can be map[string]string or []string
 	Priority []string    `yaml:"priority"` // Optional priority list
+	Exclude  []string    `yaml:"exclude"`  // Optional exclude patterns (glob format)
 }
 
 // ProjectPath represents a resolved project path with alias and priority
