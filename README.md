@@ -59,6 +59,10 @@ groups:
       feature-b: ~/projects/feature-b/.claude
     priority:
       - main  # highest priority (used on conflicts)
+    exclude:  # optional: files to exclude from sync
+      - "*.bak"
+      - "temp/*"
+      - ".DS_Store"
 ```
 
 ### 3. Sync Files
@@ -99,6 +103,39 @@ dcs push web-projects
                   # e.g., --folders prompts,commands
                   # Files in these folders use modification time only for conflict resolution
 ```
+
+## Exclude Patterns
+
+You can exclude specific files or patterns from synchronization using glob patterns in the `exclude` field:
+
+```yaml
+groups:
+  my-projects:
+    paths:
+      main: ~/projects/main/.claude
+    exclude:
+      - "*.bak"        # Exclude all .bak files
+      - "*.log"        # Exclude all log files
+      - "temp/*"       # Exclude files in temp directory
+      - "cache/*"      # Exclude files in cache directory
+      - ".DS_Store"    # Exclude macOS metadata files
+      - "*.swp"        # Exclude vim swap files
+```
+
+**Pattern Matching Rules:**
+- Patterns use Go's `filepath.Match` syntax
+- `*` matches any sequence of characters (except `/`)
+- `?` matches any single character
+- Patterns match against:
+  - Full relative path (e.g., `temp/debug.log`)
+  - Base filename (e.g., `.DS_Store`)
+
+**Common Exclude Patterns:**
+- Backup files: `*.bak`, `*~`, `*.backup`
+- Editor files: `*.swp`, `*.swo`, `.*.swp`
+- OS metadata: `.DS_Store`, `Thumbs.db`
+- Temporary files: `temp/*`, `cache/*`, `*.tmp`
+- Log files: `*.log`, `logs/*`
 
 ## Common Use Cases
 

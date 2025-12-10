@@ -20,11 +20,11 @@ type FileInfo struct {
 }
 
 // CollectFiles collects all files from .claude directories across projects
-func CollectFiles(projects []config.ProjectPath) ([]FileInfo, error) {
+func CollectFiles(projects []config.ProjectPath, excludePatterns []string) ([]FileInfo, error) {
 	var allFiles []FileInfo
 
 	for _, project := range projects {
-		files, err := collectFromProject(project)
+		files, err := collectFromProject(project, excludePatterns)
 		if err != nil {
 			// Don't fail the entire operation if one project fails
 			fmt.Fprintf(os.Stderr, "Warning: failed to collect from %s: %v\n", project.Alias, err)
@@ -41,7 +41,7 @@ func CollectFiles(projects []config.ProjectPath) ([]FileInfo, error) {
 }
 
 // collectFromProject collects files from a single project's .claude directory
-func collectFromProject(project config.ProjectPath) ([]FileInfo, error) {
+func collectFromProject(project config.ProjectPath, excludePatterns []string) ([]FileInfo, error) {
 	claudeDir := expandPath(project.Path)
 
 	// Check if .claude directory exists
@@ -89,6 +89,11 @@ func collectFromProject(project config.ProjectPath) ([]FileInfo, error) {
 		// Normalize path separators to forward slashes
 		relPath = filepath.ToSlash(relPath)
 
+		// Check if file matches any exclude pattern
+		if shouldExclude(relPath, excludePatterns) {
+			return nil
+		}
+
 		files = append(files, FileInfo{
 			RelPath:  relPath,
 			AbsPath:  path,
@@ -105,6 +110,46 @@ func collectFromProject(project config.ProjectPath) ([]FileInfo, error) {
 	}
 
 	return files, nil
+}
+
+// shouldExclude checks if a file path matches any of the exclude patterns
+func shouldExclude(relPath string, patterns []string) bool {
+	if len(patterns) == 0 {
+		return false
+	}
+
+	for _, pattern := range patterns {
+		// Try matching the full relative path
+		matched, err := filepath.Match(pattern, relPath)
+		if err != nil {
+			// Invalid pattern, skip it
+			continue
+		}
+		if matched {
+			return true
+		}
+
+		// Also try matching against the base name
+		baseName := filepath.Base(relPath)
+		matched, err = filepath.Match(pattern, baseName)
+		if err != nil {
+			continue
+		}
+		if matched {
+			return true
+		}
+
+		// Check if pattern matches any directory component
+		// For patterns like "temp/*"
+		if strings.Contains(pattern, "/") {
+			matched, err = filepath.Match(pattern, relPath)
+			if err == nil && matched {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // expandPath expands ~ to home directory
