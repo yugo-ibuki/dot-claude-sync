@@ -24,15 +24,15 @@ func TestCollectFilesWithExclude(t *testing.T) {
 
 	// Create test files
 	testFiles := map[string]string{
-		"prompts/auth.md":         "auth content",
-		"prompts/api.md":          "api content",
-		"prompts/test.bak":        "backup file",
-		"temp/debug.log":          "debug log",
-		"temp/cache.txt":          "cache file",
-		".DS_Store":               "mac file",
-		"commands/build.sh":       "build script",
-		"config/settings.json":    "settings",
-		"config/local.json.bak":   "local backup",
+		"prompts/auth.md":       "auth content",
+		"prompts/api.md":        "api content",
+		"prompts/test.bak":      "backup file",
+		"temp/debug.log":        "debug log",
+		"temp/cache.txt":        "cache file",
+		".DS_Store":             "mac file",
+		"commands/build.sh":     "build script",
+		"config/settings.json":  "settings",
+		"config/local.json.bak": "local backup",
 	}
 
 	for relPath, content := range testFiles {
